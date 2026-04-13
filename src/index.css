@@ -1,0 +1,48 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Space Grotesk", ui-monospace, SFMono-Regular, monospace;
+
+  --color-primary: #ffffff;
+  --color-background: #000000;
+  --color-surface: #131313;
+  --color-surface-container: #1f1f1f;
+  --color-surface-container-low: #1b1b1b;
+  --color-surface-container-lowest: #0e0e0e;
+  --color-surface-container-highest: #353535;
+  --color-outline: #919191;
+  --color-outline-variant: #474747;
+  --color-error: #ffb4ab;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-primary font-mono selection:bg-primary selection:text-background;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  * {
+    @apply border-outline-variant;
+    border-radius: 0 !important;
+  }
+}
+
+@layer utilities {
+  .dossier-grid {
+    background-image: 
+      linear-gradient(to right, #1f1f1f 1px, transparent 1px),
+      linear-gradient(to bottom, #1f1f1f 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  .redaction-mask {
+    @apply bg-surface-container-highest animate-pulse opacity-50;
+  }
+
+  .glass-surface {
+    @apply bg-surface-container/80 backdrop-blur-xl border border-primary/20;
+  }
+}
