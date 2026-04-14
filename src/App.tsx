@@ -929,13 +929,7 @@ function SimulationView({
           </div>
           <div className="flex-grow flex flex-col justify-center items-center p-12 space-y-12">
             <div className="w-24 h-24 flex items-center justify-center">
-              <motion.div
-                animate={{ scale: [1, 1.1, 1], opacity: [0.5, 1, 0.5] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="w-full h-full bg-primary/20 flex items-center justify-center"
-              >
-                <Mic className="w-12 h-12 text-primary" />
-              </motion.div>
+              <VoiceIndicator isSpeaking={true} />
             </div>
             <div className="text-center space-y-4 max-w-sm">
               <h3 className="font-sans text-2xl font-extrabold tracking-tighter uppercase">Opening Statement</h3>
@@ -953,13 +947,7 @@ function SimulationView({
           </div>
           <div className="flex-grow flex flex-col justify-center items-center p-12 space-y-12 bg-surface-container-lowest">
             <div className="w-24 h-24 flex items-center justify-center">
-              <motion.div
-                animate={{ scale: [1, 1.05, 1], opacity: [0.2, 0.4, 0.2] }}
-                transition={{ duration: 3, repeat: Infinity }}
-                className="w-full h-full bg-primary/10 flex items-center justify-center"
-              >
-                <Mic className="w-12 h-12 text-primary opacity-30" />
-              </motion.div>
+              <VoiceIndicator isSpeaking={false} />
             </div>
             <div className="text-center space-y-4 max-w-sm opacity-50">
               <h3 className="font-sans text-2xl font-extrabold tracking-tighter uppercase">Opening Statement</h3>
@@ -1037,6 +1025,16 @@ function SimulationView({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function VoiceIndicator({ isSpeaking }: { isSpeaking: boolean }) {
+  return (
+    <div className="flex items-center justify-center gap-[5px]">
+      {[0, 1, 2, 3, 4].map(i => (
+        <div key={i} className={`voice-bar${isSpeaking ? ' active' : ''}`} />
+      ))}
     </div>
   );
 }

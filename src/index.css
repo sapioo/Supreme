@@ -56,3 +56,51 @@
     transform: translateX(400%);
   }
 }
+
+@keyframes voice-bar {
+
+  0%,
+  100% {
+    transform: scaleY(0.3);
+  }
+
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.voice-bar {
+  width: 6px;
+  background: white;
+  border-radius: 9999px;
+  transform-origin: center;
+}
+
+.voice-bar.active {
+  animation: voice-bar 0.5s ease-in-out infinite alternate;
+}
+
+.voice-bar:nth-child(1) {
+  height: 20px;
+  animation-delay: 0.0s;
+}
+
+.voice-bar:nth-child(2) {
+  height: 32px;
+  animation-delay: -0.2s;
+}
+
+.voice-bar:nth-child(3) {
+  height: 40px;
+  animation-delay: -0.4s;
+}
+
+.voice-bar:nth-child(4) {
+  height: 32px;
+  animation-delay: -0.1s;
+}
+
+.voice-bar:nth-child(5) {
+  height: 20px;
+  animation-delay: -0.3s;
+}
