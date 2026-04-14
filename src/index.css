@@ -32,7 +32,7 @@
 
 @layer utilities {
   .dossier-grid {
-    background-image: 
+    background-image:
       linear-gradient(to right, #1f1f1f 1px, transparent 1px),
       linear-gradient(to bottom, #1f1f1f 1px, transparent 1px);
     background-size: 40px 40px;
@@ -44,5 +44,15 @@
 
   .glass-surface {
     @apply bg-surface-container/80 backdrop-blur-xl border border-primary/20;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(400%);
   }
 }
