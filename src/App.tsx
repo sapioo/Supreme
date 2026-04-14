@@ -37,6 +37,26 @@ export default function App() {
   const [isPaused, setIsPaused] = useState(false);
   const [isRedactMode, setIsRedactMode] = useState(false);
 
+  // ── Judge state (lifted so footer button can trigger it) ────────────────
+  const [isObjecting, setIsObjecting] = useState(false);
+  const [objectionText, setObjectionText] = useState('');
+  const [judgeRuling, setJudgeRuling] = useState<null | 'SUSTAINED' | 'OVERRULED'>(null);
+  const [judgeStatus, setJudgeStatus] = useState<'LISTENING' | 'EVALUATING' | 'RULING' | 'HALTED'>('LISTENING');
+
+  const handleObjection = () => { setIsObjecting(true); setJudgeStatus('HALTED'); };
+  const submitObjection = () => {
+    if (!objectionText.trim()) return;
+    setJudgeStatus('EVALUATING');
+    setObjectionText('');
+    setIsObjecting(false);
+    setTimeout(() => {
+      const ruling = Math.random() > 0.5 ? 'SUSTAINED' : 'OVERRULED';
+      setJudgeRuling(ruling);
+      setJudgeStatus('RULING');
+    }, 1500);
+  };
+  const resumeProceedings = () => { setJudgeRuling(null); setJudgeStatus('LISTENING'); };
+
   const phaseIndex = TRIAL_PHASES.indexOf(trialPhase);
   const goPrev = () => setTrialPhase(TRIAL_PHASES[Math.max(0, phaseIndex - 1)]);
   const goNext = () => setTrialPhase(TRIAL_PHASES[Math.min(TRIAL_PHASES.length - 1, phaseIndex + 1)]);
@@ -97,7 +117,21 @@ export default function App() {
         )}
         {view === 'simulation' && (
           <motion.div key="simulation" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full">
-            <SimulationView trialPhase={trialPhase} isRedactMode={isRedactMode} isPaused={isPaused} onViewEvidence={() => setView('evidence')} />
+            <SimulationView
+              trialPhase={trialPhase}
+              isRedactMode={isRedactMode}
+              isPaused={isPaused}
+              onViewEvidence={() => setView('evidence')}
+              isObjecting={isObjecting}
+              setIsObjecting={setIsObjecting}
+              objectionText={objectionText}
+              setObjectionText={setObjectionText}
+              judgeRuling={judgeRuling}
+              judgeStatus={judgeStatus}
+              setJudgeStatus={setJudgeStatus}
+              submitObjection={submitObjection}
+              resumeProceedings={resumeProceedings}
+            />
           </motion.div>
         )}
         {view === 'evidence' && (
@@ -130,10 +164,10 @@ export default function App() {
               isActive={phaseIndex === 0}
             />
             <ControlBtn
-              icon={<Pause className="w-5 h-5" />}
-              label={isPaused ? 'OBJECTION!' : 'PAUSE'}
-              onClick={() => setIsPaused(p => !p)}
-              isActive={isPaused}
+              icon={<Gavel className="w-5 h-5" />}
+              label="OBJECTION"
+              onClick={handleObjection}
+              isActive={judgeStatus === 'HALTED' || judgeStatus === 'EVALUATING'}
             />
             <ControlBtn
               icon={<StepForward className="w-5 h-5" />}
@@ -851,16 +885,33 @@ function AIProcessingIndicator({ isPaused }: { isPaused: boolean }) {
 }
 
 function SimulationView({
-
   trialPhase,
   isRedactMode,
   isPaused,
   onViewEvidence,
+  isObjecting,
+  setIsObjecting,
+  objectionText,
+  setObjectionText,
+  judgeRuling,
+  judgeStatus,
+  setJudgeStatus,
+  submitObjection,
+  resumeProceedings,
 }: {
   trialPhase: TrialPhase;
   isRedactMode: boolean;
   isPaused: boolean;
   onViewEvidence: () => void;
+  isObjecting: boolean;
+  setIsObjecting: (v: boolean) => void;
+  objectionText: string;
+  setObjectionText: (v: string) => void;
+  judgeRuling: null | 'SUSTAINED' | 'OVERRULED';
+  judgeStatus: 'LISTENING' | 'EVALUATING' | 'RULING' | 'HALTED';
+  setJudgeStatus: (v: 'LISTENING' | 'EVALUATING' | 'RULING' | 'HALTED') => void;
+  submitObjection: () => void;
+  resumeProceedings: () => void;
 }) {
   // ── Judge HUD state ───────────────────────────────────────────────
   // verdictLean: 0 = full defense, 100 = full prosecution
@@ -902,6 +953,28 @@ function SimulationView({
       className="fixed inset-0 top-16 bottom-20 overflow-hidden"
       style={{ cursor: isRedactMode ? 'crosshair' : undefined }}
     >
+      {/* Judge Status Banner */}
+      <div className={cn(
+        "absolute top-0 left-0 md:left-64 right-0 h-8 flex items-center px-6 gap-3 z-30 border-b border-primary/30 font-mono text-[9px] tracking-[0.3em] uppercase transition-colors duration-300",
+        judgeStatus === 'LISTENING' && "bg-background",
+        judgeStatus === 'HALTED' && "bg-primary/10",
+        judgeStatus === 'EVALUATING' && "bg-primary/5",
+        judgeStatus === 'RULING' && "bg-background",
+      )}>
+        <span className="text-outline">JUDGE_STATUS:</span>
+        {judgeStatus === 'LISTENING' && <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />}
+        {judgeStatus === 'EVALUATING' && <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-ping" />}
+        {judgeStatus === 'HALTED' && <span className="w-1.5 h-1.5 rounded-full bg-red-500" />}
+        {judgeStatus === 'RULING' && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
+        <span className={cn(
+          "font-bold",
+          judgeStatus === 'LISTENING' && "text-green-500",
+          judgeStatus === 'HALTED' && "text-red-400",
+          judgeStatus === 'EVALUATING' && "text-yellow-400",
+          judgeStatus === 'RULING' && "text-primary",
+        )}>{judgeStatus}</span>
+        {judgeStatus === 'EVALUATING' && <span className="text-outline animate-pulse">— Analysing grounds for objection…</span>}
+      </div>
       {/* SideNavBar - true fixed */}
       <aside className="absolute left-0 top-0 bottom-0 w-64 flex flex-col bg-background border-r border-primary hidden md:flex">
         <div className="p-6 border-b border-primary">
@@ -920,7 +993,7 @@ function SimulationView({
       </aside>
 
       {/* Simulation Split View - exactly fills the remaining space */}
-      <div className="absolute top-0 right-0 bottom-0 left-0 md:left-64 flex flex-row">
+      <div className="absolute top-8 right-0 bottom-0 left-0 md:left-64 flex flex-row">
         {/* PROSECUTION */}
         <section className="flex-1 flex flex-col border-r border-primary relative group">
           <div className="p-4 border-b border-primary flex justify-between items-center bg-background">
@@ -1025,6 +1098,111 @@ function SimulationView({
           </div>
         )}
       </div>
+
+      {/* ── Objection Input Modal ────────────────────────────────────── */}
+      <AnimatePresence>
+        {isObjecting && (
+          <motion.div
+            key="objection-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6"
+            onClick={() => { setIsObjecting(false); setJudgeStatus('LISTENING'); }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 8 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              onClick={e => e.stopPropagation()}
+              className="bg-background border border-primary w-full max-w-xl p-8 space-y-6"
+            >
+              <div className="space-y-1">
+                <p className="text-[9px] text-outline tracking-[0.4em] uppercase">⚖ Interactive Judge — Active Referee</p>
+                <h2 className="text-2xl font-extrabold font-sans tracking-tighter">LOG_OBJECTION_PROTOCOL</h2>
+              </div>
+              <div className="border-b border-primary">
+                <input
+                  autoFocus
+                  className="w-full bg-transparent text-primary font-mono tracking-widest py-3 focus:outline-none placeholder:text-surface-container-highest text-sm"
+                  placeholder="ENTER GROUNDS FOR OBJECTION (E.G., HEARSAY, LEADING)..."
+                  value={objectionText}
+                  onChange={e => setObjectionText(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') submitObjection(); }}
+                />
+              </div>
+              <div className="flex gap-4">
+                <button
+                  onClick={submitObjection}
+                  disabled={!objectionText.trim()}
+                  className="flex-1 py-4 bg-primary text-background font-bold tracking-[0.3em] text-sm hover:opacity-90 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  SUBMIT TO ALGORITHMIC JUDGE
+                </button>
+                <button
+                  onClick={() => { setIsObjecting(false); setJudgeStatus('LISTENING'); }}
+                  className="px-6 py-4 border border-primary/40 text-outline font-bold tracking-widest text-xs hover:border-primary hover:text-primary transition-colors"
+                >
+                  WITHDRAW
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Judge Ruling Modal ───────────────────────────────────────── */}
+      <AnimatePresence>
+        {judgeRuling && (
+          <motion.div
+            key="ruling-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+              className={cn(
+                "w-full max-w-2xl border-2 p-12 space-y-8 text-center",
+                judgeRuling === 'SUSTAINED' ? "border-primary bg-background" : "border-red-500/60 bg-background"
+              )}
+            >
+              <div className="space-y-2">
+                <p className="text-[9px] tracking-[0.5em] text-outline uppercase">Algorithmic Judge — Ruling</p>
+                <h2 className={cn(
+                  "text-6xl md:text-8xl font-extrabold font-sans tracking-tighter leading-none",
+                  judgeRuling === 'SUSTAINED' ? "text-primary" : "text-red-400"
+                )}>
+                  {judgeRuling}
+                </h2>
+              </div>
+              <p className={cn(
+                "text-sm font-mono tracking-widest uppercase",
+                judgeRuling === 'SUSTAINED' ? "text-primary" : "text-red-300"
+              )}>
+                {judgeRuling === 'SUSTAINED'
+                  ? 'OBJECTION SUSTAINED. STRIKING FROM RECORD.'
+                  : 'OBJECTION OVERRULED. COUNSEL, PROCEED.'}
+              </p>
+              <div className={cn(
+                "h-px w-full",
+                judgeRuling === 'SUSTAINED' ? "bg-primary/30" : "bg-red-500/30"
+              )} />
+              <button
+                onClick={resumeProceedings}
+                className="w-full py-5 border border-primary text-primary font-bold tracking-[0.4em] text-sm hover:bg-primary hover:text-background transition-all duration-200"
+              >
+                RESUME PROCEEDINGS
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
