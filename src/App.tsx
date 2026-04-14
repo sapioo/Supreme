@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { cn } from './lib/utils';
 
-type View = 'landing' | 'config' | 'simulation' | 'evidence';
+type View = 'landing' | 'config' | 'simulation' | 'evidence' | 'transcript';
 type TrialPhase = 'opening' | 'evidence' | 'cross_examination' | 'verdict';
 const TRIAL_PHASES: TrialPhase[] = ['opening', 'evidence', 'cross_examination', 'verdict'];
 
@@ -122,6 +122,7 @@ export default function App() {
               isRedactMode={isRedactMode}
               isPaused={isPaused}
               onViewEvidence={() => setView('evidence')}
+              onViewTranscript={() => setView('transcript')}
               isObjecting={isObjecting}
               setIsObjecting={setIsObjecting}
               objectionText={objectionText}
@@ -136,7 +137,12 @@ export default function App() {
         )}
         {view === 'evidence' && (
           <motion.div key="evidence" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="w-full">
-            <EvidenceView onBack={() => setView('simulation')} />
+            <EvidenceView onBack={() => setView('simulation')} onViewTranscript={() => setView('transcript')} />
+          </motion.div>
+        )}
+        {view === 'transcript' && (
+          <motion.div key="transcript" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="w-full">
+            <TranscriptView onBack={() => setView('simulation')} onViewEvidence={() => setView('evidence')} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -309,7 +315,7 @@ const TYPE_ICONS: Record<EvidenceType, React.ReactNode> = {
   physical: <FileSearch className="w-4 h-4" />,
 };
 
-function EvidenceView({ onBack }: { onBack: () => void }) {
+function EvidenceView({ onBack, onViewTranscript }: { onBack: () => void; onViewTranscript: () => void }) {
   const [filter, setFilter] = useState<EvidenceParty | 'all'>('all');
   const [typeFilter, setTypeFilter] = useState<EvidenceType | 'all'>('all');
 
@@ -329,7 +335,7 @@ function EvidenceView({ onBack }: { onBack: () => void }) {
         <nav className="flex-grow">
           <SideLink icon={<Gavel className="w-4 h-4" />} label="DOCKET" onClick={onBack} />
           <SideLink icon={<FolderOpen className="w-4 h-4" />} label="EVIDENCE" active />
-          <SideLink icon={<FileText className="w-4 h-4" />} label="TRANSCRIPT" onClick={onBack} />
+          <SideLink icon={<FileText className="w-4 h-4" />} label="TRANSCRIPT" onClick={onViewTranscript} />
           <SideLink icon={<BookOpen className="w-4 h-4" />} label="STATUTES" onClick={onBack} />
         </nav>
         <div className="p-6 border-t border-primary mt-auto">
@@ -889,6 +895,7 @@ function SimulationView({
   isRedactMode,
   isPaused,
   onViewEvidence,
+  onViewTranscript,
   isObjecting,
   setIsObjecting,
   objectionText,
@@ -903,6 +910,7 @@ function SimulationView({
   isRedactMode: boolean;
   isPaused: boolean;
   onViewEvidence: () => void;
+  onViewTranscript: () => void;
   isObjecting: boolean;
   setIsObjecting: (v: boolean) => void;
   objectionText: string;
@@ -985,7 +993,7 @@ function SimulationView({
         <nav className="flex-grow">
           <SideLink icon={<Gavel className="w-4 h-4" />} label="DOCKET" active />
           <SideLink icon={<FolderOpen className="w-4 h-4" />} label="EVIDENCE" onClick={onViewEvidence} />
-          <SideLink icon={<FileText className="w-4 h-4" />} label="TRANSCRIPT" />
+          <SideLink icon={<FileText className="w-4 h-4" />} label="TRANSCRIPT" onClick={onViewTranscript} />
           <SideLink icon={<BookOpen className="w-4 h-4" />} label="STATUTES" />
         </nav>
         <div className="p-6 border-t border-primary mt-auto">
@@ -1228,6 +1236,257 @@ function SimulationView({
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+// ─── Transcript Data ──────────────────────────────────────────────────────────
+const TRANSCRIPT_ENTRIES = [
+  {
+    id: 1,
+    type: 'statement' as const,
+    speaker: 'COURT OFFICER (NAIB-QASID)',
+    timestamp: '14:02:05',
+    text: 'All rise. The Supreme Algorithmic Tribunal is now in session. The Honourable Algorithmic Judge Unit-7 presiding. Case No. 2024/CR/0492. Matter of State vs. Arvind Mehta.',
+  },
+  {
+    id: 2,
+    type: 'ruling' as const,
+    speaker: 'ALGORITHMIC JUDGE UNIT-7',
+    timestamp: '14:02:44',
+    text: 'Counsel for prosecution and defence are present. The accused is present before the court. The charge sheet having been formally read, the court proceeds to record the deposition of PW-1. Witness shall be administered the digital oath.',
+  },
+  {
+    id: 3,
+    type: 'statement' as const,
+    speaker: 'COURT — OATH REGISTRY',
+    timestamp: '14:04:10',
+    text: 'Witness sworn on digital oath states as under: I do solemnly affirm that the testimony I am about to give is the truth, the whole truth, and nothing but the truth. Digital oath hash recorded: 0x4AF7...D9C1.',
+  },
+  {
+    id: 4,
+    type: 'statement' as const,
+    speaker: 'PW-1: DR. PRIYA NAIR — FORENSIC ANALYST (CYBER CRIMES DIVISION)',
+    timestamp: '14:05:33',
+    text: 'I am Dr. Priya Nair, Senior Forensic Analyst attached to the Cyber Crimes Division, New Delhi, Node-IV. I have been in service for eleven years. I hold a doctorate in Digital Forensics from IIT Bombay and am certified under the CERT-In framework (Reg. No. CFA-004821).',
+  },
+  {
+    id: 5,
+    type: 'qna' as const,
+    speaker: 'APP. VIKRAM SOOD, ADDITIONAL PUBLIC PROSECUTOR',
+    timestamp: '14:07:18',
+    question: 'Dr. Nair, were you called upon to examine the digital evidence seized from the accused\'s registered device cluster on 14.09.2024?',
+    answer: 'Yes, My Lord. I received Exhibit M-1A through M-1F, comprising six encrypted solid-state storage units, on 16th September 2024, along with a proper seizure memo. The chain of custody was intact.',
+  },
+  {
+    id: 6,
+    type: 'qna' as const,
+    speaker: 'APP. VIKRAM SOOD',
+    timestamp: '14:09:52',
+    question: 'What did your forensic examination of Exhibit M-1A reveal?',
+    answer: 'Exhibit M-1A contained a concealed encrypted partition — volume label "ARCHIVE_NULL" — accessible only by a 4,096-bit asymmetric key. Upon court-authorised decryption, a structured database of 4.7 million records was recovered, consistent with the alleged misappropriated financial data.',
+  },
+  {
+    id: 7,
+    type: 'ruling' as const,
+    speaker: 'ALGORITHMIC JUDGE UNIT-7',
+    timestamp: '14:11:30',
+    text: 'Objection by defence counsel noted. Grounds: lack of proper authorisation for decryption. Court has perused the decryption warrant issued by the Special Court (Cyber Crimes) dated 14.09.2024. The objection is OVERRULED. Witness may continue.',
+  },
+  {
+    id: 8,
+    type: 'qna' as const,
+    speaker: 'ADV. REENA THOMAS, COUNSEL FOR DEFENCE — CROSS-EXAMINATION',
+    timestamp: '14:14:05',
+    question: 'Dr. Nair, can you confirm with absolute certainty that the recovered data was placed on Exhibit M-1A by the accused, and not introduced by any third party post-seizure?',
+    answer: 'The forensic write-block tools prevent any post-seizure modification. However, I cannot with absolute certainty attribute original authorship to the accused without corroborating metadata analysis, which forms part of my report at Annexure III.',
+  },
+  {
+    id: 9,
+    type: 'statement' as const,
+    speaker: 'ADV. REENA THOMAS',
+    timestamp: '14:16:44',
+    text: 'Defence places on record that the witness has conceded uncertainty as to attribution. We submit that the chain of authorship is not conclusively established and the Exhibit be treated as inconclusive pending further expert testimony from DW-2.',
+  },
+  {
+    id: 10,
+    type: 'ruling' as const,
+    speaker: 'ALGORITHMIC JUDGE UNIT-7',
+    timestamp: '14:17:29',
+    text: 'Statement of defence noted. The court will take into account the conceded uncertainty at the time of final appreciation of evidence. The cross-examination of PW-1 is concluded. The witness is discharged. Next date for examination of PW-2: 22.10.2024.',
+  },
+];
+
+// Speaker tag colour
+function tagColor(type: 'statement' | 'qna' | 'ruling') {
+  if (type === 'ruling') return 'text-yellow-400';
+  if (type === 'qna') return 'text-primary';
+  return 'text-outline';
+}
+
+function TranscriptView({ onBack, onViewEvidence }: { onBack: () => void; onViewEvidence: () => void }) {
+  const transcriptEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+
+  return (
+    <main className="flex min-h-screen pt-16 bg-background">
+
+      {/* Sidebar */}
+      <aside className="hidden md:flex flex-none w-64 flex-col bg-background border-r border-primary fixed top-16 bottom-0 left-0">
+        <div className="p-6 border-b border-primary">
+          <h2 className="text-lg font-bold font-sans">Court Management</h2>
+          <p className="text-[10px] text-outline uppercase">Status: Secure</p>
+        </div>
+        <nav className="flex-grow">
+          <SideLink icon={<Gavel className="w-4 h-4" />} label="DOCKET" onClick={onBack} />
+          <SideLink icon={<FolderOpen className="w-4 h-4" />} label="EVIDENCE" onClick={onViewEvidence} />
+          <SideLink icon={<FileText className="w-4 h-4" />} label="TRANSCRIPT" active />
+          <SideLink icon={<BookOpen className="w-4 h-4" />} label="STATUTES" onClick={onBack} />
+        </nav>
+        <div className="p-6 border-t border-primary mt-auto">
+          <p className="text-[9px] text-outline tracking-widest uppercase">Case No. 2024/CR/0492</p>
+          <p className="text-[9px] text-outline tracking-widest uppercase mt-1">PW-1 Deposition — LIVE</p>
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <div className="flex-1 md:ml-64 overflow-y-auto pb-8">
+        <div className="max-w-4xl mx-auto px-6 py-8 space-y-0">
+
+          {/* ── CAUSE TITLE HEADER ───────────────────────────────────────────── */}
+          <div className="border-2 border-primary mb-8">
+            <div className="bg-primary text-background px-6 py-3 text-center">
+              <p className="text-[10px] tracking-[0.5em] font-bold font-mono uppercase">
+                IN THE SUPREME ALGORITHMIC TRIBUNAL, NEW DELHI — BHARAT_NODE
+              </p>
+            </div>
+            <div className="border-t border-primary px-8 py-6 space-y-3 font-mono text-[11px]">
+              <div className="flex justify-between items-center">
+                <span className="text-outline tracking-[0.3em] uppercase text-[9px]">Case Number</span>
+                <span className="font-bold tracking-widest">CASE NO. 2024 / CR / 0492</span>
+              </div>
+              <div className="border-t border-primary/30 pt-3 space-y-1">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-bold tracking-wider uppercase">STATE OF BHARATNODE ...................................................... COMPLAINANT</p>
+                    <p className="text-outline text-[9px] tracking-[0.2em] ml-2">THROUGH: ADDITIONAL PUBLIC PROSECUTOR VIKRAM SOOD</p>
+                  </div>
+                </div>
+                <p className="text-center tracking-[0.6em] py-1 text-outline">— VERSUS —</p>
+                <div>
+                  <p className="font-bold tracking-wider uppercase">ARVIND MEHTA S/O RAJESH MEHTA ...................................... ACCUSED</p>
+                  <p className="text-outline text-[9px] tracking-[0.2em] ml-2">REPRESENTED BY: ADV. REENA THOMAS (REGD. NO. BAR-D-00891)</p>
+                </div>
+              </div>
+              <div className="border-t border-primary/30 pt-3 flex justify-between items-center">
+                <span className="text-outline tracking-[0.3em] uppercase text-[9px]">Coram</span>
+                <span className="font-bold tracking-widest uppercase">Algorithmic Judge Unit-7</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-outline tracking-[0.3em] uppercase text-[9px]">Date of Hearing</span>
+                <span className="tracking-widest">14.10.2024</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-outline tracking-[0.3em] uppercase text-[9px]">Nature of Proceedings</span>
+                <span className="tracking-widest uppercase">Recording of Evidence — PW-1 (Examination-in-Chief &amp; Cross)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ── PREAMBLE ─────────────────────────────────────────────────────── */}
+          <div className="border border-primary/40 px-6 py-4 mb-6 font-mono text-[10px] leading-relaxed tracking-wide">
+            <p className="text-outline text-[9px] tracking-[0.4em] uppercase mb-2">Court Record — Preamble</p>
+            <p>
+              The following is an official verbatim record of the deposition proceedings held before the Supreme Algorithmic Tribunal in the matter cited above. All statements herein have been recorded in accordance with Section 278 CrPC (Adapted — Algorithmic Tribunal Rules, 2022). Any corrections have been initialled by the deponent.
+            </p>
+          </div>
+
+          {/* ── TRANSCRIPT ENTRIES ───────────────────────────────────────────── */}
+          <div className="space-y-0 font-mono text-[11px] leading-relaxed">
+            {TRANSCRIPT_ENTRIES.map((entry, idx) => (
+              <div
+                key={entry.id}
+                className="flex gap-0 border-b border-primary/15 group"
+              >
+                {/* Left margin: timestamp + paragraph number */}
+                <div className="w-28 flex-shrink-0 border-r border-primary/30 pr-4 py-4 flex flex-col items-end gap-1">
+                  <span className="text-[8px] tracking-[0.15em] text-outline font-mono">
+                    [{entry.timestamp}]
+                  </span>
+                  <span className="text-[8px] text-outline/50 font-mono">
+                    §{String(idx + 1).padStart(2, '0')}
+                  </span>
+                </div>
+
+                {/* Main content */}
+                <div className="flex-1 py-4 pl-5 pr-2 space-y-2">
+
+                  {/* Speaker label */}
+                  <p className={cn(
+                    'text-[9px] tracking-[0.3em] uppercase font-bold',
+                    tagColor(entry.type)
+                  )}>
+                    {entry.type === 'ruling' && '⚖ '}
+                    {entry.type === 'qna' && '◈ '}
+                    {entry.speaker}
+                  </p>
+
+                  {/* Content */}
+                  {entry.type === 'qna' ? (
+                    <div className="space-y-1.5 pl-2 border-l border-primary/30">
+                      <p>
+                        <span className="text-primary font-extrabold">Q. </span>
+                        <span className="text-primary/90">{entry.question}</span>
+                      </p>
+                      <p>
+                        <span className="text-outline font-extrabold">A. </span>
+                        <span className="text-primary/70">{entry.answer}</span>
+                      </p>
+                    </div>
+                  ) : (
+                    <p className={cn(
+                      entry.type === 'ruling' ? 'text-yellow-400/80' : 'text-primary/70'
+                    )}>
+                      {entry.text}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* ── DIGITAL SIGNATURE FOOTER ─────────────────────────────────────── */}
+          <div ref={transcriptEndRef} className="border-2 border-primary mt-8 font-mono">
+            <div className="bg-primary/5 border-b border-primary px-6 py-3">
+              <p className="text-[9px] tracking-[0.5em] text-outline uppercase text-center">
+                RO &amp; AC — Read Over and Acknowledged Correct
+              </p>
+            </div>
+            <div className="px-8 py-6 grid grid-cols-1 md:grid-cols-3 gap-6 divide-y md:divide-y-0 md:divide-x divide-primary/30">
+              <div className="md:pr-6 space-y-1">
+                <p className="text-[8px] tracking-[0.4em] text-outline uppercase mb-1">Deponent Signature</p>
+                <p className="text-[10px] text-primary tracking-wide">DR. PRIYA NAIR (PW-1)</p>
+                <p className="text-[9px] text-outline">Digital Thumbprint: 0xFE3A...91B7</p>
+              </div>
+              <div className="pt-4 md:pt-0 md:px-6 space-y-1">
+                <p className="text-[8px] tracking-[0.4em] text-outline uppercase mb-1">Tribunal Hash Seal</p>
+                <p className="text-[10px] text-primary font-bold tracking-wider">DIGITAL HASH SIGNATURE:</p>
+                <p className="text-[9px] text-primary/70 break-all">0x9A4F...C82E_7D01_BHARAT_CRT</p>
+              </div>
+              <div className="pt-4 md:pt-0 md:pl-6 space-y-1">
+                <p className="text-[8px] tracking-[0.4em] text-outline uppercase mb-1">Registry Certification</p>
+                <p className="text-[10px] text-primary tracking-wide">TRIBUNAL SEAL AFFIXED.</p>
+                <p className="text-[9px] text-outline">Certified True Copy — Registrar, SAT-ND</p>
+                <p className="text-[9px] text-green-500 animate-pulse uppercase">● Verified Authentic</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </main>
   );
 }
 
