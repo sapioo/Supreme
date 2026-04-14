@@ -961,7 +961,7 @@ function SimulationView({
         judgeStatus === 'EVALUATING' && "bg-primary/5",
         judgeStatus === 'RULING' && "bg-background",
       )}>
-        <span className="text-outline">JUDGE_STATUS:</span>
+        <span className="text-outline">JUDGE: </span>
         {judgeStatus === 'LISTENING' && <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />}
         {judgeStatus === 'EVALUATING' && <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-ping" />}
         {judgeStatus === 'HALTED' && <span className="w-1.5 h-1.5 rounded-full bg-red-500" />}
@@ -975,6 +975,7 @@ function SimulationView({
         )}>{judgeStatus}</span>
         {judgeStatus === 'EVALUATING' && <span className="text-outline animate-pulse">— Analysing grounds for objection…</span>}
       </div>
+
       {/* SideNavBar - true fixed */}
       <aside className="absolute left-0 top-0 bottom-0 w-64 flex flex-col bg-background border-r border-primary hidden md:flex">
         <div className="p-6 border-b border-primary">
@@ -992,43 +993,66 @@ function SimulationView({
         </div>
       </aside>
 
-      {/* Simulation Split View - exactly fills the remaining space */}
-      <div className="absolute top-8 right-0 bottom-0 left-0 md:left-64 flex flex-row">
-        {/* PROSECUTION */}
-        <section className="flex-1 flex flex-col border-r border-primary relative group">
-          <div className="p-4 border-b border-primary flex justify-between items-center bg-background">
-            <span className="text-xs tracking-widest uppercase">Prosecution Counsel</span>
-            <Circle className="w-2 h-2 fill-primary" />
-          </div>
-          <div className="flex-grow flex flex-col justify-center items-center p-12 space-y-12">
-            <div className="w-24 h-24 flex items-center justify-center">
-              <VoiceIndicator isSpeaking={true} />
-            </div>
-            <div className="text-center space-y-4 max-w-sm">
-              <h3 className="font-sans text-2xl font-extrabold tracking-tighter uppercase">Opening Statement</h3>
-              <p className="text-sm leading-relaxed text-outline uppercase">Preparing opening arguments... Reviewing physical evidence and witness testimony.</p>
-            </div>
-          </div>
-          <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-        </section>
+      {/* Simulation Split View OR Verdict Screen */}
+      <div className="absolute top-8 right-0 bottom-0 left-0 md:left-64">
+        <AnimatePresence mode="wait">
+          {trialPhase !== 'verdict' ? (
+            <motion.div
+              key="trial"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 flex flex-row"
+            >
+              {/* PROSECUTION */}
+              <section className="flex-1 flex flex-col border-r border-primary relative group">
+                <div className="p-4 border-b border-primary flex justify-between items-center bg-background">
+                  <span className="text-xs tracking-widest uppercase">Prosecution Counsel</span>
+                  <Circle className="w-2 h-2 fill-primary" />
+                </div>
+                <div className="flex-grow flex flex-col justify-center items-center p-12 space-y-12">
+                  <div className="w-24 h-24 flex items-center justify-center">
+                    <VoiceIndicator isSpeaking={true} />
+                  </div>
+                  <div className="text-center space-y-4 max-w-sm">
+                    <h3 className="font-sans text-2xl font-extrabold tracking-tighter uppercase">Opening Statement</h3>
+                    <p className="text-sm leading-relaxed text-outline uppercase">Preparing opening arguments... Reviewing physical evidence and witness testimony.</p>
+                  </div>
+                </div>
+                <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+              </section>
 
-        {/* DEFENSE */}
-        <section className="flex-1 flex flex-col relative group">
-          <div className="p-4 border-b border-primary flex justify-between items-center bg-background">
-            <span className="text-xs tracking-widest uppercase">Defense Counsel</span>
-            <Circle className="w-2 h-2 text-outline" />
-          </div>
-          <div className="flex-grow flex flex-col justify-center items-center p-12 space-y-12 bg-surface-container-lowest">
-            <div className="w-24 h-24 flex items-center justify-center">
-              <VoiceIndicator isSpeaking={false} />
-            </div>
-            <div className="text-center space-y-4 max-w-sm opacity-50">
-              <h3 className="font-sans text-2xl font-extrabold tracking-tighter uppercase">Opening Statement</h3>
-              <p className="text-sm leading-relaxed uppercase">Awaiting prosecution's opening statement. Defense is ready.</p>
-            </div>
-          </div>
-          <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-        </section>
+              {/* DEFENSE */}
+              <section className="flex-1 flex flex-col relative group">
+                <div className="p-4 border-b border-primary flex justify-between items-center bg-background">
+                  <span className="text-xs tracking-widest uppercase">Defense Counsel</span>
+                  <Circle className="w-2 h-2 text-outline" />
+                </div>
+                <div className="flex-grow flex flex-col justify-center items-center p-12 space-y-12 bg-surface-container-lowest">
+                  <div className="w-24 h-24 flex items-center justify-center">
+                    <VoiceIndicator isSpeaking={false} />
+                  </div>
+                  <div className="text-center space-y-4 max-w-sm opacity-50">
+                    <h3 className="font-sans text-2xl font-extrabold tracking-tighter uppercase">Opening Statement</h3>
+                    <p className="text-sm leading-relaxed uppercase">Awaiting prosecution's opening statement. Defense is ready.</p>
+                  </div>
+                </div>
+                <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+              </section>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="verdict"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4 }}
+              className="absolute inset-0 overflow-y-auto bg-background"
+            >
+              <VerdictScreen />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Judge HUD */}
@@ -1200,6 +1224,111 @@ function SimulationView({
                 RESUME PROCEEDINGS
               </button>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+const VERDICT_SCRIPT =
+  "THIS COURT IS NOW IN SESSION. CASE NO. 2024-CR-0492 — FINAL DETERMINATION. " +
+  "THE HONOURABLE COURT HAS REVIEWED ALL SUBMITTED EVIDENCE AND TESTIMONY. " +
+  "CROSS-EXAMINATION TRANSCRIPTS HAVE BEEN ASSESSED FOR CREDIBILITY AND CONSISTENCY. " +
+  "APPLICABLE STATUTES AND PRECEDENTS HAVE BEEN CONSIDERED IN THEIR ENTIRETY. " +
+  "THE BURDEN OF PROOF HAS BEEN EVALUATED AGAINST THE STANDARD OF BEYOND REASONABLE DOUBT. " +
+  "HAVING DELIBERATED ON ALL MATTERS OF FACT AND LAW BEFORE THIS COURT... " +
+  "THE COURT IS NOW PREPARED TO DELIVER ITS FINAL VERDICT.";
+
+const VERDICT_DOCKET = {
+  ruling: 'GUILTY',
+  penalty: '15 YEARS IMPRISONMENT + $4.5M IN DAMAGES & COURT COSTS',
+  postTrial: 'REMANDED INTO CUSTODY — ALL ASSETS SUBJECT TO CIVIL FORFEITURE',
+  confidence: '98.4%',
+};
+
+function VerdictScreen() {
+  const [displayedText, setDisplayedText] = useState('');
+  const [docketVisible, setDocketVisible] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(true);
+
+  useEffect(() => {
+    let i = 0;
+    setDisplayedText('');
+    setDocketVisible(false);
+    setIsSpeaking(true);
+    const id = setInterval(() => {
+      i++;
+      setDisplayedText(VERDICT_SCRIPT.slice(0, i));
+      if (i >= VERDICT_SCRIPT.length) {
+        clearInterval(id);
+        setIsSpeaking(false);
+        setTimeout(() => setDocketVisible(true), 600);
+      }
+    }, 28);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center p-8 md:p-16 overflow-y-auto gap-10">
+
+      {/* Verdict Header */}
+      <div className="text-center pb-4">
+        <h1 className="text-4xl md:text-5xl font-extrabold font-sans tracking-[0.2em] text-primary uppercase">VERDICT</h1>
+      </div>
+
+      {/* Typewriter Terminal */}
+      <div className="w-full max-w-2xl font-mono text-sm leading-relaxed min-h-[120px] relative">
+        <p className="text-[9px] text-outline tracking-[0.4em] uppercase mb-3">Court Transcript — Final Session</p>
+        <p className="text-primary tracking-wide">
+          {displayedText}
+          <motion.span
+            animate={{ opacity: [1, 0] }}
+            transition={{ duration: 0.5, repeat: Infinity }}
+            className="inline-block w-[2px] h-[1em] bg-primary ml-0.5 align-middle"
+          />
+        </p>
+      </div>
+
+      {/* Final Docket — fades in after typewriter */}
+      <AnimatePresence>
+        {docketVisible && (
+          <motion.div
+            key="docket"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="w-full max-w-2xl py-8 space-y-6"
+          >
+            <p className="text-[9px] tracking-[0.5em] text-outline uppercase text-center mb-6">⚖ Official Court Record — Case No. 2024-CR-0492</p>
+
+            {/* Ruling — massive */}
+            <div className="text-center border border-primary/30 py-6">
+              <p className="text-[9px] tracking-[0.5em] text-outline uppercase mb-2">Final Ruling</p>
+              <h2 className="text-5xl md:text-7xl font-extrabold font-sans tracking-tighter text-primary leading-none mt-2">
+                {VERDICT_DOCKET.ruling}
+              </h2>
+            </div>
+
+            {/* Detail grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-0 divide-y md:divide-y-0 md:divide-x divide-primary/30">
+              <div className="py-4 md:pr-6 space-y-1">
+                <p className="text-[8px] tracking-[0.4em] text-outline uppercase">Penalty / Damages</p>
+                <p className="text-sm font-mono font-bold text-primary leading-snug">{VERDICT_DOCKET.penalty}</p>
+              </div>
+              <div className="py-4 md:px-6 space-y-1">
+                <p className="text-[8px] tracking-[0.4em] text-outline uppercase">Post-Trial Actions</p>
+                <p className="text-sm font-mono font-bold text-red-400 leading-snug">{VERDICT_DOCKET.postTrial}</p>
+              </div>
+              <div className="py-4 md:pl-6 space-y-1 flex flex-col justify-center">
+                <p className="text-[8px] tracking-[0.4em] text-outline uppercase">Confidence Score</p>
+                <p className="text-5xl font-extrabold font-sans text-primary leading-none">{VERDICT_DOCKET.confidence}</p>
+              </div>
+            </div>
+
+            <p className="text-[8px] text-outline tracking-widest text-center pt-2 border-t border-primary/20">
+              THIS RULING IS FINAL AND UNAPPEALABLE — GENERATED BY SUPREME_ARBITER_AI v1.0.0
+            </p>
           </motion.div>
         )}
       </AnimatePresence>
