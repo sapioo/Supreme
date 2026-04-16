@@ -275,6 +275,8 @@ export default function GavelLoader({ selectedCase, selectedSide, onContextLoade
           border: '1px solid #242424',
           background: '#171717',
           padding: '0.5rem 0',
+          maxHeight: 'min(48vh, 420px)',
+          overflowY: 'auto',
         }}>
           {steps.map((step, i) => (
             <div key={i}>
@@ -298,12 +300,17 @@ export default function GavelLoader({ selectedCase, selectedSide, onContextLoade
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                     <span style={{
+                      display: 'block',
+                      minWidth: 0,
                       fontFamily: 'var(--font-label)',
                       fontSize: '0.58rem',
                       letterSpacing: '0.14em',
                       textTransform: 'uppercase',
                       color: LABEL_COLORS[step.status],
                       fontWeight: step.status === 'running' ? 600 : 500,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
                     }}>
                       {step.label}
                     </span>
@@ -325,9 +332,10 @@ export default function GavelLoader({ selectedCase, selectedSide, onContextLoade
                       fontSize: '0.52rem',
                       color: DETAIL_COLORS[step.status],
                       marginTop: 3,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
+                      whiteSpace: 'normal',
+                      overflowWrap: 'anywhere',
+                      wordBreak: 'break-word',
+                      lineHeight: 1.35,
                     }}>
                       → {step.detail}
                     </p>
