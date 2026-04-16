@@ -121,6 +121,19 @@
   cursor: wait;
 }
 
+.arg-input__mic-btn--blocked {
+  opacity: 0.56;
+  cursor: not-allowed;
+}
+
+/* AI is speaking — mic is locked out */
+.arg-input__mic-btn--ai-speaking {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: rgba(172, 207, 186, 0.4);
+  box-shadow: 0 0 18px rgba(172, 207, 186, 0.12);
+}
+
 .arg-input__mic-icon-wrap {
   width: 100%;
   height: 100%;
@@ -155,6 +168,11 @@
   animation-delay: 1s;
 }
 
+/* AI speaking rings — green tint */
+.arg-input__mic-ring--ai {
+  border-color: rgba(172, 207, 186, 0.5);
+}
+
 @keyframes micRingPulse {
   from {
     transform: scale(1);
@@ -185,6 +203,18 @@
   animation: blink 1.4s ease-in-out infinite;
 }
 
+/* AI speaking indicator — amber pulse */
+.arg-input__voice-status-dot--ai {
+  background: var(--color-secondary);
+  box-shadow: 0 0 10px rgba(233, 193, 118, 0.6);
+  animation: blink 0.8s ease-in-out infinite;
+}
+
+.arg-input__voice-status-text--ai {
+  color: var(--color-secondary);
+  font-style: italic;
+}
+
 .arg-input__voice-status-text {
   color: var(--color-on-surface-variant);
   font-size: 0.85rem;
@@ -205,6 +235,13 @@
 .arg-input__mute-btn--muted {
   border-color: rgba(164, 73, 63, 0.55);
   background: rgba(147, 0, 10, 0.2);
+}
+
+.arg-input__voice-error {
+  margin-top: var(--space-2);
+  color: var(--color-error);
+  font-size: 0.76rem;
+  text-align: center;
 }
 
 .arg-input__field-wrap {

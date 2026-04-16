@@ -2,7 +2,7 @@ import { useRef, useEffect } from 'react';
 import ArgumentBubble from './ArgumentBubble';
 import './ChatArea.css';
 
-export default function ChatArea({ arguments: args, isAiTyping, currentRound }) {
+export default function ChatArea({ arguments: args, isAiTyping, isAiSpeaking, currentRound }) {
   const chatEndRef = useRef(null);
 
   useEffect(() => {
@@ -44,6 +44,17 @@ export default function ChatArea({ arguments: args, isAiTyping, currentRound }) 
             text=""
             round={currentRound}
             isTyping={true}
+          />
+        )}
+
+        {/* AI speaking in voice mode — show waveform indicator in chat */}
+        {isAiSpeaking && !isAiTyping && (
+          <ArgumentBubble
+            side="ai"
+            text=""
+            round={currentRound}
+            isTyping={true}
+            isSpeaking={true}
           />
         )}
 

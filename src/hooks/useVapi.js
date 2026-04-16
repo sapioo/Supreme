@@ -1,228 +1,228 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import VapiModule from '@vapi-ai/web';
-// Handle CJS default export: the package exports { default: class Vapi }
-const Vapi = VapiModule.default || VapiModule;
 
 /**
- * useVapi — Custom hook for managing Vapi voice sessions in the courtroom
+ * useVapi — Voice session hook for the courtroom
  *
- * Handles:
- * - Vapi instance lifecycle
- * - Call start/stop
- * - Live transcripts (user + assistant)
- * - Volume levels for waveform visualization
- * - Speech state tracking (who's speaking)
- * - Mute/unmute
+ * Vapi instance is created lazily (only when user clicks mic) to avoid
+ * touching audio/DOM APIs on page load. The module itself is statically
+ * imported so Vite pre-bundles the CJS→ESM conversion correctly.
  */
+
+// Static top-level import so Vite pre-bundles @vapi-ai/web as ESM.
+// We don't instantiate it here — just capture the class reference.
+import VapiSDK from '@vapi-ai/web';
+const VapiClass = VapiSDK?.default ?? VapiSDK;
+
 export default function useVapi({
-  systemPrompt,
+  systemPrompt = '',
   onUserTranscript,
   onAssistantTranscript,
   onCallStart,
   onCallEnd,
   onError,
-  enabled = true,
 }) {
   const vapiRef = useRef(null);
-  const [isCallActive, setIsCallActive] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isUserSpeaking, setIsUserSpeaking] = useState(false);
-  const [isAssistantSpeaking, setIsAssistantSpeaking] = useState(false);
-  const [volumeLevel, setVolumeLevel] = useState(0);
-  const [connectionStatus, setConnectionStatus] = useState('idle'); // idle | connecting | connected | error
 
-  // Store latest callbacks in refs to avoid re-creating effects
-  const callbacksRef = useRef({ onUserTranscript, onAssistantTranscript, onCallStart, onCallEnd, onError });
+  const [isCallActive, setIsCallActive]               = useState(false);
+  const [isMuted, setIsMuted]                         = useState(false);
+  const [isUserSpeaking, setIsUserSpeaking]           = useState(false);
+  const [isAssistantSpeaking, setIsAssistantSpeaking] = useState(false);
+  const [volumeLevel, setVolumeLevel]                 = useState(0);
+  const [connectionStatus, setConnectionStatus]       = useState('idle');
+  const [lastError, setLastError]                     = useState('');
+
+  // Keep latest callbacks in a ref so event handlers never go stale
+  const cbRef = useRef({});
   useEffect(() => {
-    callbacksRef.current = { onUserTranscript, onAssistantTranscript, onCallStart, onCallEnd, onError };
+    cbRef.current = { onUserTranscript, onAssistantTranscript, onCallStart, onCallEnd, onError };
   });
 
-  // Initialize Vapi instance — always create it so it's ready when user clicks mic
+  // Keep latest systemPrompt in a ref so startCall always uses the freshest value
+  const systemPromptRef = useRef(systemPrompt);
   useEffect(() => {
+    systemPromptRef.current = systemPrompt;
+  }, [systemPrompt]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (vapiRef.current) {
+        try { vapiRef.current.stop(); } catch { /* ignore */ }
+        vapiRef.current = null;
+      }
+    };
+  }, []);
+
+  // ─── Create Vapi instance (once, on first startCall) ──────────────────────
+  const ensureInstance = useCallback(async () => {
+    if (vapiRef.current) return vapiRef.current;
 
     const publicKey = import.meta.env.VITE_VAPI_PUBLIC_KEY;
     if (!publicKey || publicKey === 'your-vapi-public-key-here') {
-      console.warn('[Vapi] No valid VITE_VAPI_PUBLIC_KEY found. Voice features disabled.');
-      return;
+      setLastError('No Vapi public key configured.');
+      return null;
+    }
+
+    if (!VapiClass) {
+      setLastError('Voice SDK not available.');
+      return null;
     }
 
     try {
-      const vapi = new Vapi(publicKey);
+      const vapi = new VapiClass(publicKey);
       vapiRef.current = vapi;
 
-      // --- Event Handlers ---
+      // Debounce timer — keeps isAssistantSpeaking true for 1.5s after
+      // the last non-zero volume sample, preventing stutter on brief pauses
+      let speakingHoldTimer = null;
 
       vapi.on('call-start', () => {
         setIsCallActive(true);
+        setIsMuted(false);
         setConnectionStatus('connected');
-        callbacksRef.current.onCallStart?.();
+        setLastError('');
+        cbRef.current.onCallStart?.();
       });
 
       vapi.on('call-end', () => {
+        if (speakingHoldTimer) { clearTimeout(speakingHoldTimer); speakingHoldTimer = null; }
         setIsCallActive(false);
         setIsUserSpeaking(false);
         setIsAssistantSpeaking(false);
         setVolumeLevel(0);
         setConnectionStatus('idle');
-        callbacksRef.current.onCallEnd?.();
+        cbRef.current.onCallEnd?.();
       });
 
-      vapi.on('speech-start', () => {
-        setIsUserSpeaking(true);
-      });
+      vapi.on('speech-start', () => setIsUserSpeaking(true));
+      vapi.on('speech-end',   () => setIsUserSpeaking(false));
 
-      vapi.on('speech-end', () => {
-        setIsUserSpeaking(false);
-      });
+      vapi.on('volume-level', (vol) => {
+        setVolumeLevel(vol);
 
-      vapi.on('volume-level', (volume) => {
-        setVolumeLevel(volume);
-        setIsAssistantSpeaking(volume > 0.01);
-      });
-
-      vapi.on('error', (error) => {
-        console.error('[Vapi] Error:', error);
-        setConnectionStatus('error');
-        callbacksRef.current.onError?.(error);
-      });
-
-      vapi.on('message', (message) => {
-        if (message.type === 'transcript') {
-          if (message.transcriptType === 'final') {
-            if (message.role === 'user') {
-              callbacksRef.current.onUserTranscript?.(message.transcript);
-            } else if (message.role === 'assistant') {
-              callbacksRef.current.onAssistantTranscript?.(message.transcript);
-            }
+        if (vol > 0.02) {
+          // AI is producing audio — mark as speaking immediately
+          setIsAssistantSpeaking(true);
+          // Reset the hold timer on every active sample
+          if (speakingHoldTimer) { clearTimeout(speakingHoldTimer); speakingHoldTimer = null; }
+        } else {
+          // Volume dropped to near-zero — only clear after 1.5s of sustained silence
+          // This prevents stutter from brief pauses mid-sentence
+          if (!speakingHoldTimer) {
+            speakingHoldTimer = setTimeout(() => {
+              setIsAssistantSpeaking(false);
+              speakingHoldTimer = null;
+            }, 1500);
           }
         }
       });
 
-      return () => {
-        vapi.stop();
-        vapiRef.current = null;
-      };
+      vapi.on('error', (err) => {
+        console.error('[Vapi] Error:', err);
+        const msg = err?.error?.message || err?.message || 'Voice connection failed.';
+        setConnectionStatus('error');
+        setLastError(msg);
+        setIsCallActive(false);
+        cbRef.current.onError?.(err);
+      });
+
+      vapi.on('message', (msg) => {
+        if (msg.type !== 'transcript' || msg.transcriptType !== 'final') return;
+        if (msg.role === 'user') {
+          cbRef.current.onUserTranscript?.(msg.transcript);
+        } else if (msg.role === 'assistant') {
+          cbRef.current.onAssistantTranscript?.(msg.transcript);
+        }
+      });
+
+      return vapi;
     } catch (err) {
-      console.error('[Vapi] Failed to initialize:', err);
-      setConnectionStatus('error');
+      console.error('[Vapi] Failed to create instance:', err);
+      setLastError('Voice init failed: ' + (err?.message || 'unknown'));
+      return null;
     }
   }, []);
 
-  /**
-   * Start a voice call with the courtroom assistant.
-   * Uses VITE_VAPI_ASSISTANT_ID if available (pre-configured in Vapi dashboard),
-   * otherwise falls back to inline assistant config.
-   */
+  // ─── startCall ─────────────────────────────────────────────────────────────
   const startCall = useCallback(async () => {
-    const vapi = vapiRef.current;
+    setConnectionStatus('connecting');
+    setLastError('');
+
+    const vapi = await ensureInstance();
     if (!vapi) {
-      console.warn('[Vapi] Instance not initialized. Check VITE_VAPI_PUBLIC_KEY.');
+      setConnectionStatus('error');
       return;
     }
 
-    setConnectionStatus('connecting');
-
+    const prompt = systemPromptRef.current;
     const assistantId = import.meta.env.VITE_VAPI_ASSISTANT_ID;
 
+    const inlineConfig = {
+      model: {
+        provider: 'openai',
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'system', content: prompt || 'You are an AI legal counsel in a courtroom debate simulation.' }],
+      },
+      voice: { provider: '11labs', voiceId: 'pNInz6obpgDQGcFmaJgB' },
+      transcriber: { provider: 'deepgram', model: 'nova-2', language: 'en' },
+      firstMessage: "My Lords, the opposing counsel is present and ready to address the Court.",
+    };
+
     try {
-      if (assistantId) {
-        // Use pre-configured assistant from Vapi dashboard — no overrides
-        console.log('[Vapi] Starting call with assistant ID:', assistantId);
-        await vapi.start(assistantId);
-      } else {
-        // Fallback: inline assistant configuration (no assistant ID)
-        console.log('[Vapi] Starting call with inline config');
-        await vapi.start({
-          model: {
-            provider: 'openai',
-            model: 'gpt-4o-mini',
-            messages: [
-              {
-                role: 'system',
-                content: systemPrompt || 'You are an AI legal counsel in a courtroom debate simulation.',
-              },
-            ],
-          },
-          voice: {
-            provider: '11labs',
-            voiceId: 'pNInz6obpgDQGcFmaJgB',
-          },
-          firstMessage: "My Lords, the opposing counsel is now ready to present their arguments before this Hon'ble Court.",
-          transcriber: {
-            provider: 'deepgram',
-            model: 'nova-2',
-            language: 'en',
-          },
+      if (assistantId && assistantId !== 'your-vapi-assistant-id-here') {
+        console.log('[Vapi] Starting with assistant ID + overrides');
+        // 2nd arg is assistantOverrides per the Vapi.start() signature
+        await vapi.start(assistantId, {
+          model: inlineConfig.model,
         });
+      } else {
+        console.log('[Vapi] Starting with inline config');
+        await vapi.start(inlineConfig);
       }
     } catch (err) {
-      console.error('[Vapi] Failed to start call:', err?.message || err);
-      console.error('[Vapi] Full error:', JSON.stringify(err, null, 2));
+      console.error('[Vapi] startCall failed:', err);
       setConnectionStatus('error');
+      setLastError(err?.message || 'Unable to start voice session.');
     }
-  }, [systemPrompt]);
+  }, [ensureInstance]);
 
-  /**
-   * Stop the active voice call
-   */
+  // ─── stopCall ──────────────────────────────────────────────────────────────
   const stopCall = useCallback(() => {
-    vapiRef.current?.stop();
+    try { vapiRef.current?.stop(); } catch { /* ignore */ }
     setIsCallActive(false);
     setConnectionStatus('idle');
   }, []);
 
-  /**
-   * Toggle microphone mute
-   */
+  // ─── toggleMute ────────────────────────────────────────────────────────────
   const toggleMute = useCallback(() => {
     if (!vapiRef.current) return;
-    const newMuted = !isMuted;
-    vapiRef.current.setMuted(newMuted);
-    setIsMuted(newMuted);
-  }, [isMuted]);
+    setIsMuted((prev) => {
+      const next = !prev;
+      vapiRef.current.setMuted(next);
+      return next;
+    });
+  }, []);
 
-  /**
-   * Send a text message to the assistant during an active call
-   */
+  // ─── sendMessage ───────────────────────────────────────────────────────────
   const sendMessage = useCallback((text) => {
     if (!vapiRef.current || !isCallActive) return;
-    vapiRef.current.send({
-      type: 'add-message',
-      message: { role: 'user', content: text },
-    });
+    vapiRef.current.send({ type: 'add-message', message: { role: 'system', content: text } });
   }, [isCallActive]);
 
-  /**
-   * Make the assistant say something
-   */
+  // ─── say ───────────────────────────────────────────────────────────────────
   const say = useCallback((text, endAfterSpeaking = false) => {
     if (!vapiRef.current || !isCallActive) return;
     vapiRef.current.say(text, endAfterSpeaking);
   }, [isCallActive]);
 
-  /**
-   * Check if Vapi is available (key configured)
-   */
-  const isAvailable = (() => {
-    const key = import.meta.env.VITE_VAPI_PUBLIC_KEY;
-    return !!key && key !== 'your-vapi-public-key-here';
-  })();
+  const isAvailable = !!(
+    import.meta.env.VITE_VAPI_PUBLIC_KEY &&
+    import.meta.env.VITE_VAPI_PUBLIC_KEY !== 'your-vapi-public-key-here'
+  );
 
   return {
-    // State
-    isCallActive,
-    isMuted,
-    isUserSpeaking,
-    isAssistantSpeaking,
-    volumeLevel,
-    connectionStatus,
-    isAvailable,
-
-    // Actions
-    startCall,
-    stopCall,
-    toggleMute,
-    sendMessage,
-    say,
+    isCallActive, isMuted, isUserSpeaking, isAssistantSpeaking,
+    volumeLevel, connectionStatus, isAvailable, lastError,
+    startCall, stopCall, toggleMute, sendMessage, say,
   };
 }

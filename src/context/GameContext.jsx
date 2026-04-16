@@ -62,10 +62,12 @@ function gameReducer(state, action) {
     case 'AI_RESPOND':
       return {
         ...state,
-        arguments: [
-          ...state.arguments,
-          { side: 'ai', text: action.payload, round: state.currentRound }
-        ],
+        arguments: action.payload
+          ? [
+              ...state.arguments,
+              { side: 'ai', text: action.payload, round: state.currentRound },
+            ]
+          : state.arguments,
         isAiTyping: false,
       };
 
@@ -151,7 +153,7 @@ export function GameProvider({ children }) {
 
 export function useGame() {
   const context = useContext(GameContext);
-  if (!context && context !== null) {
+  if (context === undefined) {
     throw new Error('useGame must be used within a GameProvider');
   }
   return context;

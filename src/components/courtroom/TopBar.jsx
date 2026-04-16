@@ -1,31 +1,50 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './TopBar.css';
 
-export default function TopBar({ caseName, courtBadge, currentRound, totalRounds, timer, onTimerEnd }) {
+export default function TopBar({
+  caseName,
+  courtBadge,
+  currentRound,
+  totalRounds,
+  timer,
+  onTimerEnd,
+  isTimerRunning = true,
+  timerKey,
+  timerLabel,
+}) {
   const [time, setTime] = useState(timer);
-  const [isUrgent, setIsUrgent] = useState(false);
+  const hasEndedRef = useRef(false);
 
   useEffect(() => {
     setTime(timer);
-  }, [timer]);
+    hasEndedRef.current = false;
+  }, [timer, timerKey]);
 
   useEffect(() => {
-    if (time <= 0) {
-      onTimerEnd?.();
+    if (!isTimerRunning || time <= 0) {
       return;
     }
 
     const interval = setInterval(() => {
-      setTime(prev => {
-        const next = prev - 1;
-        if (next <= 30) setIsUrgent(true);
-        else setIsUrgent(false);
-        return next;
-      });
+      setTime((prev) => Math.max(prev - 1, 0));
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [time, onTimerEnd]);
+  }, [isTimerRunning, time]);
+
+  useEffect(() => {
+    if (!isTimerRunning) {
+      hasEndedRef.current = false;
+      return;
+    }
+
+    if (time > 0 || hasEndedRef.current) {
+      return;
+    }
+
+    hasEndedRef.current = true;
+    onTimerEnd?.();
+  }, [time, isTimerRunning, onTimerEnd]);
 
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
@@ -33,7 +52,8 @@ export default function TopBar({ caseName, courtBadge, currentRound, totalRounds
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  const progressPercent = ((timer - time) / timer) * 100;
+  const progressPercent = timer > 0 ? ((timer - time) / timer) * 100 : 0;
+  const isUrgent = isTimerRunning && time <= 30;
 
   return (
     <header className="topbar" id="courtroom-topbar">
@@ -66,7 +86,7 @@ export default function TopBar({ caseName, courtBadge, currentRound, totalRounds
 
       {/* Right: Timer */}
       <div className={`topbar__timer ${isUrgent ? 'topbar__timer--urgent' : ''}`}>
-        <span className="topbar__timer-label">Time Remaining</span>
+        <span className="topbar__timer-label">{timerLabel || 'Time Remaining'}</span>
         <span className="topbar__timer-value">{formatTime(time)}</span>
         <div className="topbar__timer-bar">
           <div className="topbar__timer-fill" style={{ width: `${100 - progressPercent}%` }} />

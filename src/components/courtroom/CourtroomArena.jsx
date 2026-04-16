@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useGame, useGameDispatch } from '../../context/GameContext';
-import { getAIResponse, scoreArgument, getAIScore, getJudgeComment } from '../../data/mockAI';
-import { isQdrantConfigured, searchRelevantContext, getCaseOverview } from '../../services/qdrantService';
+import { scoreArgument, getAIScore, getJudgeComment, getAIResponse } from '../../data/mockAI';
+import { generateAIArgument, scoreArgumentWithAI, checkNIMConnectivity } from '../../services/nimService';
+import { isQdrantConfigured, checkCollectionHealth, searchRelevantContext, getCaseOverview } from '../../services/qdrantService';
 import useVapi from '../../hooks/useVapi';
 import TopBar from './TopBar';
 import JudgeBench from './JudgeBench';
@@ -13,277 +14,340 @@ import './CourtroomArena.css';
 export default function CourtroomArena() {
   const state = useGame();
   const dispatch = useGameDispatch();
-  const [showScores, setShowScores] = useState(false);
-  const [roundComplete, setRoundComplete] = useState(false);
-  const [isVoiceMode, setIsVoiceMode] = useState(false);
-  const vapiSayRef = useRef(null); // Bridge ref for vapi.say()
 
-  // Qdrant context state
-  const [qdrantReady, setQdrantReady] = useState(false);
-  const [roundContext, setRoundContext] = useState(''); // per-round retrieved context
+  const [showScores, setShowScores]             = useState(false);
+  const [roundComplete, setRoundComplete]       = useState(false);
+  // Default to voice mode — text is the fallback option
+  const [isVoiceMode, setIsVoiceMode]           = useState(true);
+  const [isUserTurnActive, setIsUserTurnActive] = useState(true);
+  const [turnTimerKey, setTurnTimerKey]         = useState(0);
+  const [voiceError, setVoiceError]             = useState('');
+
+  // Qdrant
+  const [qdrantReady, setQdrantReady]                   = useState(false);
+  const [roundContext, setRoundContext]                 = useState('');
+  const [hasContextAttempted, setHasContextAttempted]   = useState(false);
+
+  // Voice priming
+  const [hasPrimedVoice, setHasPrimedVoice] = useState(false);
+
+  // Track whether AI is currently speaking so we can mute the user mic
+  const [isAiSpeaking, setIsAiSpeaking] = useState(false);
+  // Ref to track mute state without triggering re-renders in the effect
+  const isMutedByAiRef = useRef(false);
 
   const aiSide = state.selectedSide === 'petitioner' ? 'respondent' : 'petitioner';
 
-  // ─── Fetch case overview context on mount ────────────────────────────────
-
+  // ─── Qdrant: fetch case overview on mount ──────────────────────────────────
   useEffect(() => {
+    // Check NIM connectivity once on mount (result visible in browser console)
+    checkNIMConnectivity();
+
     if (!state.selectedCase) return;
 
-    const configured = isQdrantConfigured();
-    setQdrantReady(configured);
+    setHasContextAttempted(false);
+    setRoundContext('');
 
-    if (!configured) {
-      console.log('[CourtRoom] Qdrant not configured — using mock AI fallback.');
+    // First check if Qdrant is configured at all
+    if (!isQdrantConfigured()) {
+      setQdrantReady(false);
+      setHasContextAttempted(true);
       return;
     }
 
-    // Fetch initial case context
     (async () => {
       dispatch({ type: 'SET_LOADING_CONTEXT', payload: true });
       try {
+        // Check collection health before attempting search
+        const health = await checkCollectionHealth();
+        if (!health.exists || health.pointCount === 0) {
+          console.warn('[CourtRoom] Qdrant collection empty or missing — skipping RAG.');
+          setQdrantReady(false);
+          return;
+        }
+
+        setQdrantReady(true);
         const overview = await getCaseOverview(state.selectedCase.id);
         if (overview.formatted) {
           dispatch({ type: 'SET_CASE_CONTEXT', payload: overview.formatted });
-          console.log('[CourtRoom] Case overview context loaded from Qdrant.');
+          console.log(`[CourtRoom] Qdrant context loaded (${health.pointCount} points).`);
         }
       } catch (err) {
-        console.error('[CourtRoom] Failed to fetch case overview:', err.message);
+        console.error('[CourtRoom] Qdrant setup failed:', err.message);
+        setQdrantReady(false);
       } finally {
         dispatch({ type: 'SET_LOADING_CONTEXT', payload: false });
+        setHasContextAttempted(true);
       }
     })();
-  }, [state.selectedCase, dispatch]);
+  }, [state.selectedCase?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ─── Build system prompt with Qdrant context ────────────────────────────
-
+  // ─── Build Vapi system prompt ──────────────────────────────────────────────
   const buildSystemPrompt = useCallback(() => {
     if (!state.selectedCase) return '';
     const aiParty = state.selectedCase[aiSide];
+    const userParty = state.selectedCase[state.selectedSide];
 
-    let prompt = `You are ${aiParty.name}, the ${aiSide} in the landmark Indian case "${state.selectedCase.shortName}" (${state.selectedCase.year}), argued before the ${state.selectedCase.court}.
+    let prompt =
+      `You are ${aiParty.name}, arguing as the ${aiSide} in the landmark Indian Supreme Court case ` +
+      `"${state.selectedCase.shortName}" (${state.selectedCase.year}).\n\n` +
+      `Your position: ${aiParty.position}\n` +
+      `${aiParty.description}\n\n` +
+      `Key arguments you should draw from:\n` +
+      aiParty.keyArgs.map((a, i) => `${i + 1}. ${a}`).join('\n') +
+      `\n\nRelevant constitutional articles: ${state.selectedCase.articles.join(', ')}\n\n` +
+      `The opposing counsel is ${userParty.name} (${state.selectedSide}).\n\n` +
+      `RULES:\n` +
+      `- Address the bench as "My Lords" or "Your Lordships"\n` +
+      `- Keep responses to 2-3 paragraphs\n` +
+      `- Be formal, authoritative, and precise\n` +
+      `- Directly counter the opponent's specific points\n` +
+      `- Cite constitutional articles and legal principles\n` +
+      `- Do NOT use bullet points — write in flowing legal prose\n` +
+      `- This is Round ${state.currentRound} of ${state.totalRounds}`;
 
-Your position: ${aiParty.position}
-${aiParty.description}
-
-You are in a courtroom debate simulation. The user is arguing the opposing side. Respond to their arguments as a skilled Indian lawyer would — citing constitutional articles, relevant precedents, and making persuasive legal arguments.
-
-Rules:
-- Address the bench as "My Lords" or "Your Lordships"
-- Keep responses to 2-3 paragraphs maximum
-- Be formal, articulate, and authoritative
-- Reference specific constitutional articles: ${state.selectedCase.articles.join(', ')}
-- Counter the opponent's arguments directly
-- This is Round ${state.currentRound} of ${state.totalRounds}`;
-
-    // Inject Qdrant case overview context if available
     if (state.caseContext) {
-      prompt += `\n\n--- CASE KNOWLEDGE BASE ---\nThe following excerpts are from the actual judgment of this case. Use them to strengthen your arguments with specific citations and legal reasoning:\n${state.caseContext}`;
+      prompt += `\n\nCASE KNOWLEDGE BASE (from actual judgment):\n${state.caseContext}`;
     }
-
-    // Inject per-round retrieved context if available
     if (roundContext) {
-      prompt += `\n\n--- RELEVANT CONTEXT FOR THIS ROUND ---\nThe following excerpts are directly relevant to the opponent's latest argument. Use them to craft a targeted response:\n${roundContext}`;
+      prompt += `\n\nRELEVANT CONTEXT FOR THIS ROUND:\n${roundContext}`;
     }
 
     return prompt;
-  }, [state.selectedCase, state.currentRound, state.totalRounds, state.caseContext, aiSide, roundContext]);
+  }, [state.selectedCase, state.selectedSide, state.currentRound, state.totalRounds, state.caseContext, aiSide, roundContext]);
 
-  // ─── Qdrant-enhanced AI response ─────────────────────────────────────────
+  // ─── Vapi callbacks ────────────────────────────────────────────────────────
 
-  /**
-   * Get AI response — first tries Qdrant-enhanced context, falls back to mock.
-   * Returns the response text.
-   */
-  const getEnhancedAIResponse = useCallback(async (userArgument) => {
-    // Always have the mock response ready as fallback
-    const mockResponse = getAIResponse(state.selectedCase.id, state.currentRound, aiSide);
+  // Assistant transcript → add to chat, clear AI typing state
+  const handleAssistantTranscript = useCallback((transcript) => {
+    if (!transcript?.trim()) return;
+    dispatch({ type: 'AI_RESPOND', payload: transcript });
+    setIsAiSpeaking(false);
+  }, [dispatch]);
 
-    if (!qdrantReady) {
-      return mockResponse;
-    }
-
-    try {
-      dispatch({ type: 'SET_LOADING_CONTEXT', payload: true });
-
-      // Query Qdrant for context relevant to the user's argument
-      const { formatted } = await searchRelevantContext({
-        queryText: userArgument,
-        caseId: state.selectedCase.id,
-        aiSide,
-        limit: 5,
-      });
-
-      if (formatted) {
-        setRoundContext(formatted);
-        console.log('[CourtRoom] Round context retrieved from Qdrant.');
-      }
-
-      dispatch({ type: 'SET_LOADING_CONTEXT', payload: false });
-
-      // For now, still use mock response but it's now contextually aware
-      // via the system prompt injection above.
-      // When Vapi is used with inline config, the system prompt already
-      // includes the Qdrant context, making the AI response smarter.
-      return mockResponse;
-    } catch (err) {
-      console.error('[CourtRoom] Qdrant retrieval failed, using mock:', err.message);
-      dispatch({ type: 'SET_LOADING_CONTEXT', payload: false });
-      return mockResponse;
-    }
-  }, [state.selectedCase, state.currentRound, aiSide, qdrantReady, dispatch]);
-
-  // ─── Voice transcript handler ────────────────────────────────────────────
-
+  // User voice transcript → submit as argument, score it
   const handleUserVoiceTranscript = useCallback(async (transcript) => {
     if (!transcript || transcript.trim().length < 10) return;
-
-    // Submit the transcript as the user's argument
+    setIsUserTurnActive(false);
     dispatch({ type: 'SUBMIT_ARGUMENT', payload: transcript });
     setShowScores(false);
 
-    const aiDelay = 1000 + Math.random() * 1000;
+    // Score after a delay to let Vapi respond first
     setTimeout(async () => {
-      const aiResponse = await getEnhancedAIResponse(transcript);
-      dispatch({ type: 'AI_RESPOND', payload: aiResponse });
+      let userScore = scoreArgument(transcript, state.selectedCase, state.selectedSide, state.currentRound);
+      const aiScoreAttempt = await scoreArgumentWithAI({
+        userArgument: transcript,
+        caseData: state.selectedCase,
+        side: state.selectedSide,
+        round: state.currentRound,
+      });
+      if (aiScoreAttempt) userScore = aiScoreAttempt;
 
-      // Make the AI speak the response via Vapi TTS
-      vapiSayRef.current?.(aiResponse);
+      const aiScore = getAIScore(state.currentRound);
+      const judgeComment = getJudgeComment(userScore, aiScore);
 
-      setTimeout(() => {
-        const userScore = scoreArgument(transcript, state.selectedCase, state.selectedSide, state.currentRound);
-        const aiScore = getAIScore(state.currentRound);
-        const judgeComment = getJudgeComment(userScore, aiScore);
+      dispatch({ type: 'SCORE_ROUND', payload: { userScore, aiScore, judgeComment } });
+      setShowScores(true);
+      setRoundComplete(true);
+      // Ensure isAiTyping is cleared even if assistant transcript never fires
+      dispatch({ type: 'AI_RESPOND', payload: '' });
+    }, 4000);
+  }, [dispatch, state.selectedCase, state.selectedSide, state.currentRound]);
 
-        dispatch({
-          type: 'SCORE_ROUND',
-          payload: { userScore, aiScore, judgeComment }
-        });
-
-        setShowScores(true);
-        setRoundComplete(true);
-      }, 800);
-    }, aiDelay);
-  }, [dispatch, state.selectedCase, state.selectedSide, state.currentRound, getEnhancedAIResponse]);
-
-  /**
-   * Handle transcript from Vapi when assistant speaks
-   */
-  const handleAssistantVoiceTranscript = useCallback(() => {
-    // The AI transcript from Vapi is shown in real-time via ChatArea
-  }, []);
-
-  // Initialize Vapi
   const vapi = useVapi({
     systemPrompt: buildSystemPrompt(),
     onUserTranscript: handleUserVoiceTranscript,
-    onAssistantTranscript: handleAssistantVoiceTranscript,
-    onCallStart: () => console.log('[CourtRoom] Voice session started'),
-    onCallEnd: () => console.log('[CourtRoom] Voice session ended'),
-    onError: (err) => console.error('[CourtRoom] Vapi error:', err),
-    enabled: isVoiceMode,
+    onAssistantTranscript: handleAssistantTranscript,
+    onCallStart: () => {
+      setVoiceError('');
+      setIsAiSpeaking(false);
+    },
+    onCallEnd: () => {
+      setIsAiSpeaking(false);
+    },
+    onError: (err) => {
+      setVoiceError(err?.message || 'Voice connection failed.');
+      setIsAiSpeaking(false);
+    },
   });
 
-  // Keep say ref in sync so callbacks can use it
+  // ─── Mute/unmute user mic based on who is speaking ────────────────────────
+  // When AI volume goes above threshold → mute user mic
+  // ─── Mute/unmute user mic based on who is speaking ────────────────────────
+  // Uses isMutedByAiRef so we only call toggleMute() once per transition,
+  // not on every volume-level event. The 1.5s debounce in useVapi ensures
+  // isAssistantSpeaking only flips after sustained silence — no stutter.
   useEffect(() => {
-    vapiSayRef.current = vapi.say;
-  }, [vapi.say]);
+    if (!vapi.isCallActive) {
+      isMutedByAiRef.current = false;
+      return;
+    }
 
-  // ─── Text argument handler ──────────────────────────────────────────────
+    if (vapi.isAssistantSpeaking && !isMutedByAiRef.current) {
+      isMutedByAiRef.current = true;
+      setIsAiSpeaking(true);
+      vapi.toggleMute(); // mute user while AI speaks
+    } else if (!vapi.isAssistantSpeaking && isMutedByAiRef.current) {
+      isMutedByAiRef.current = false;
+      setIsAiSpeaking(false);
+      vapi.toggleMute(); // unmute user when AI finishes
+    }
+  }, [vapi.isAssistantSpeaking, vapi.isCallActive]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ─── Prime Vapi with case context once call is active ─────────────────────
+  useEffect(() => {
+    if (!isVoiceMode || !vapi.isCallActive || hasPrimedVoice) return;
+    if (!state.selectedCase) return;
+
+    const userParty = state.selectedCase[state.selectedSide];
+    const aiParty = state.selectedCase[aiSide];
+    const primer =
+      `CASE CONTEXT: You are ${aiParty.name} (${aiSide}) in ${state.selectedCase.shortName}. ` +
+      `The user is ${userParty.name} (${state.selectedSide}). ` +
+      `Respond only in formal Indian courtroom style. Do not ask for context.` +
+      (state.caseContext ? `\n\nCase knowledge:\n${state.caseContext}` : '');
+
+    vapi.sendMessage(primer);
+    setHasPrimedVoice(true);
+  }, [isVoiceMode, vapi.isCallActive, hasPrimedVoice, state.selectedCase, state.selectedSide, aiSide, state.caseContext, vapi]);
+
+  useEffect(() => {
+    if (!vapi.isCallActive) setHasPrimedVoice(false);
+  }, [vapi.isCallActive]);
+
+  // ─── Text mode: real NIM AI response ──────────────────────────────────────
+  const getAIResponseText = useCallback(async (userArgument) => {
+    if (qdrantReady) {
+      try {
+        const { formatted } = await searchRelevantContext({
+          queryText: userArgument,
+          caseId: state.selectedCase.id,
+          aiSide,
+          limit: 5,
+        });
+        if (formatted) setRoundContext(formatted);
+      } catch (err) {
+        console.warn('[CourtRoom] Qdrant round context failed:', err.message);
+      }
+    }
+
+    const history = state.arguments.map((a) => ({ side: a.side, text: a.text }));
+
+    try {
+      return await generateAIArgument({
+        userArgument,
+        caseData: state.selectedCase,
+        aiSide,
+        currentRound: state.currentRound,
+        totalRounds: state.totalRounds,
+        caseContext: state.caseContext || roundContext,
+        conversationHistory: history,
+      });
+    } catch (err) {
+      console.error('[CourtRoom] NIM failed, falling back to mock:', err.message);
+      return getAIResponse(state.selectedCase.id, state.currentRound, aiSide);
+    }
+  }, [state.selectedCase, state.currentRound, state.totalRounds, state.caseContext, state.arguments, aiSide, qdrantReady, roundContext]);
+
+  // ─── Submit argument (text mode) ──────────────────────────────────────────
   const handleSubmitArgument = useCallback(async (text) => {
+    setIsUserTurnActive(false);
     dispatch({ type: 'SUBMIT_ARGUMENT', payload: text });
     setShowScores(false);
 
-    const aiDelay = 1500 + Math.random() * 2000;
-    setTimeout(async () => {
-      const aiResponse = await getEnhancedAIResponse(text);
-      dispatch({ type: 'AI_RESPOND', payload: aiResponse });
+    const [aiResponse, aiScoreAttempt] = await Promise.all([
+      getAIResponseText(text),
+      scoreArgumentWithAI({
+        userArgument: text,
+        caseData: state.selectedCase,
+        side: state.selectedSide,
+        round: state.currentRound,
+      }),
+    ]);
 
-      setTimeout(() => {
-        const userScore = scoreArgument(text, state.selectedCase, state.selectedSide, state.currentRound);
-        const aiScore = getAIScore(state.currentRound);
-        const judgeComment = getJudgeComment(userScore, aiScore);
+    dispatch({ type: 'AI_RESPOND', payload: aiResponse });
 
-        dispatch({
-          type: 'SCORE_ROUND',
-          payload: { userScore, aiScore, judgeComment }
-        });
+    const userScore = aiScoreAttempt || scoreArgument(text, state.selectedCase, state.selectedSide, state.currentRound);
+    const aiScore = getAIScore(state.currentRound);
+    const judgeComment = getJudgeComment(userScore, aiScore);
 
-        setShowScores(true);
-        setRoundComplete(true);
-      }, 800);
-    }, aiDelay);
-  }, [dispatch, state.selectedCase, state.selectedSide, state.currentRound, getEnhancedAIResponse]);
+    dispatch({ type: 'SCORE_ROUND', payload: { userScore, aiScore, judgeComment } });
+    setShowScores(true);
+    setRoundComplete(true);
+  }, [dispatch, state.selectedCase, state.selectedSide, state.currentRound, getAIResponseText]);
 
-  // ─── Round / game flow ──────────────────────────────────────────────────
-
+  // ─── Next round / end game — immediate, no delay ──────────────────────────
   const handleNextRound = useCallback(() => {
     if (state.currentRound >= state.totalRounds) {
-      // Stop voice call if active
-      if (vapi.isCallActive) {
-        vapi.stopCall();
-      }
+      // End game
+      if (vapi.isCallActive) vapi.stopCall();
 
-      const allScores = [...state.roundScores];
-      const userTotal = allScores.reduce((sum, r) => {
-        return sum + Object.values(r.userScore).reduce((a, b) => a + b, 0);
-      }, 0);
-      const aiTotal = allScores.reduce((sum, r) => {
-        return sum + Object.values(r.aiScore).reduce((a, b) => a + b, 0);
-      }, 0);
+      const userTotal = state.roundScores.reduce(
+        (sum, r) => sum + Object.values(r.userScore).reduce((a, b) => a + b, 0), 0
+      );
+      const aiTotal = state.roundScores.reduce(
+        (sum, r) => sum + Object.values(r.aiScore).reduce((a, b) => a + b, 0), 0
+      );
 
-      const verdict = {
-        winner: userTotal >= aiTotal ? 'user' : 'ai',
-        userTotal,
-        aiTotal,
-        margin: Math.abs(userTotal - aiTotal),
-      };
-
-      dispatch({ type: 'END_GAME', payload: verdict });
+      dispatch({
+        type: 'END_GAME',
+        payload: {
+          winner: userTotal >= aiTotal ? 'user' : 'ai',
+          userTotal,
+          aiTotal,
+          margin: Math.abs(userTotal - aiTotal),
+        },
+      });
     } else {
-      dispatch({ type: 'NEXT_ROUND' });
+      // Immediately advance — reset all round state synchronously
       setShowScores(false);
       setRoundComplete(false);
-      setRoundContext(''); // Clear per-round context for next round
+      setRoundContext('');
+      setIsUserTurnActive(true);
+      setIsAiSpeaking(false);
+      setTurnTimerKey((k) => k + 1);
+      dispatch({ type: 'NEXT_ROUND' });
     }
   }, [dispatch, state.currentRound, state.totalRounds, state.roundScores, vapi]);
 
   const handleTimerEnd = useCallback(() => {
-    if (!state.isAiTyping && !roundComplete) {
-      handleSubmitArgument("The counsel requests the Court's indulgence... [Time expired]");
+    if (isUserTurnActive && !state.isAiTyping && !roundComplete) {
+      handleSubmitArgument("The counsel requests the Court's indulgence. [Time expired]");
     }
-  }, [state.isAiTyping, roundComplete, handleSubmitArgument]);
+  }, [isUserTurnActive, state.isAiTyping, roundComplete, handleSubmitArgument]);
 
   const handleToggleVoiceMode = useCallback(() => {
-    if (isVoiceMode && vapi.isCallActive) {
-      vapi.stopCall();
-    }
-    setIsVoiceMode(prev => !prev);
+    if (isVoiceMode && vapi.isCallActive) vapi.stopCall();
+    setIsVoiceMode((v) => !v);
+    setVoiceError('');
   }, [isVoiceMode, vapi]);
 
+  const canStartVoice = !state.isLoadingContext && (!qdrantReady || hasContextAttempted);
+
   const handleStartVoice = useCallback(() => {
+    if (!canStartVoice) return;
+    setVoiceError('');
     vapi.startCall();
-  }, [vapi]);
+  }, [vapi, canStartVoice]);
 
-  const handleStopVoice = useCallback(() => {
-    vapi.stopCall();
-  }, [vapi]);
-
+  // Mic is disabled when AI is speaking or round is complete or input is disabled
   const isInputDisabled = state.isAiTyping || roundComplete;
+  const isMicDisabled   = isInputDisabled || isAiSpeaking || vapi.isAssistantSpeaking;
+  const displayVoiceError = vapi.lastError || voiceError;
 
   return (
     <div className="courtroom" id="courtroom-arena">
-      {/* Loading Context Overlay */}
+      {/* Loading overlay */}
       {state.isLoadingContext && (
         <div className="courtroom__context-loading" id="context-loading-indicator">
           <div className="courtroom__context-loading-inner">
             <div className="courtroom__context-spinner" />
-            <span>Retrieving case knowledge…</span>
+            <span>Retrieving case knowledge...</span>
           </div>
         </div>
       )}
 
-      {/* Qdrant Status Badge */}
+      {/* Qdrant badge */}
       {qdrantReady && (
         <div className="courtroom__qdrant-badge" title="Connected to case knowledge base">
           <span className="courtroom__qdrant-dot" />
@@ -291,24 +355,24 @@ Rules:
         </div>
       )}
 
-      {/* Top Bar */}
       <TopBar
         caseName={state.selectedCase?.shortName}
         courtBadge={state.selectedCase?.courtBadge}
         currentRound={state.currentRound}
         totalRounds={state.totalRounds}
-        timer={state.timer}
+        timer={state.timer || 120}
         onTimerEnd={handleTimerEnd}
+        isTimerRunning={isUserTurnActive && !roundComplete}
+        timerKey={turnTimerKey}
+        timerLabel={isUserTurnActive ? 'Your Turn Time' : 'Turn Complete'}
       />
 
       <section className="courtroom__scene">
         <aside className="courtroom__side-panel">
-          <JudgeBench
-            roundScores={state.roundScores}
-            isVisible={showScores}
-          />
+          <JudgeBench roundScores={state.roundScores} isVisible={showScores} />
 
-          {isVoiceMode && vapi.isCallActive && (
+          {/* Waveform — show whenever call is active, not just in voice mode */}
+          {vapi.isCallActive && (
             <div className="courtroom__waveform-container">
               <VoiceWaveform
                 volumeLevel={vapi.volumeLevel}
@@ -325,15 +389,9 @@ Rules:
                 id="next-round-btn"
               >
                 {state.currentRound >= state.totalRounds ? (
-                  <>
-                    <span>Hear the Verdict</span>
-                    <span className="courtroom__next-icon">⚖</span>
-                  </>
+                  <><span>Hear the Verdict</span><span className="courtroom__next-icon">⚖</span></>
                 ) : (
-                  <>
-                    <span>Proceed to Round {state.currentRound + 1}</span>
-                    <span className="courtroom__next-icon">→</span>
-                  </>
+                  <><span>Round {state.currentRound + 1}</span><span className="courtroom__next-icon">→</span></>
                 )}
               </button>
             </div>
@@ -344,12 +402,14 @@ Rules:
           <ChatArea
             arguments={state.arguments}
             isAiTyping={state.isAiTyping}
+            isAiSpeaking={isAiSpeaking}
             currentRound={state.currentRound}
           />
 
           <ArgumentInput
             onSubmit={handleSubmitArgument}
             disabled={isInputDisabled}
+            micDisabled={isMicDisabled}
             currentRound={state.currentRound}
             totalRounds={state.totalRounds}
             selectedSide={state.selectedSide}
@@ -359,10 +419,13 @@ Rules:
             isCallActive={vapi.isCallActive}
             isMuted={vapi.isMuted}
             isUserSpeaking={vapi.isUserSpeaking}
+            isAiSpeaking={isAiSpeaking || vapi.isAssistantSpeaking}
             connectionStatus={vapi.connectionStatus}
             onStartVoice={handleStartVoice}
-            onStopVoice={handleStopVoice}
+            onStopVoice={vapi.stopCall}
             onToggleMute={vapi.toggleMute}
+            canStartVoice={canStartVoice}
+            voiceError={displayVoiceError}
           />
         </div>
       </section>

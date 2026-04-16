@@ -9,20 +9,42 @@
 // ─── Configuration (reads from Vite env in browser) ──────────────────────────
 
 function getConfig() {
-  // In browser (Vite), use import.meta.env
-  // Fallback for Node.js (testing) uses process.env
   const env = typeof import.meta !== 'undefined' && import.meta.env
     ? import.meta.env
     : (typeof process !== 'undefined' ? process.env : {});
 
+  const isDev = typeof import.meta !== 'undefined' && import.meta.env?.DEV;
+  const rawQdrantUrl = env.VITE_QDRANT_URL || '';
+
   return {
-    qdrantUrl: env.VITE_QDRANT_URL || '',
+    // In dev use the Vite proxy path; in prod call Qdrant directly
+    qdrantUrl: isDev ? '/api/qdrant' : rawQdrantUrl,
+    rawQdrantUrl,                          // always the real URL for validation
     qdrantApiKey: env.VITE_QDRANT_API_KEY || '',
     nvidiaApiKey: env.VITE_NVIDIA_API_KEY || '',
     collectionName: 'courtroom_cases',
-    nvidiaEmbedUrl: 'https://integrate.api.nvidia.com/v1/embeddings',
-    nvidiaModel: 'nvidia/nv-embed-v2',
+    // In dev use the Vite proxy path; in prod call NVIDIA directly
+    nvidiaEmbedUrl: isDev
+      ? '/api/nvidia/v1/embeddings'
+      : 'https://integrate.api.nvidia.com/v1/embeddings',
+    nvidiaModel: 'nvidia/nv-embed-v1',
   };
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 12000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (err) {
+    if (err?.name === 'AbortError') {
+      throw new Error(`Request timed out after ${timeoutMs}ms`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 /**
@@ -30,14 +52,40 @@ function getConfig() {
  */
 export function isQdrantConfigured() {
   const config = getConfig();
-  return (
-    config.qdrantUrl &&
-    !config.qdrantUrl.includes('your-cluster') &&
+  // Validate against the real URL, not the proxy path
+  return !!(
+    config.rawQdrantUrl &&
+    !config.rawQdrantUrl.includes('your-cluster') &&
     config.qdrantApiKey &&
     config.qdrantApiKey !== 'your-qdrant-api-key' &&
     config.nvidiaApiKey &&
     config.nvidiaApiKey !== 'your-nvidia-api-key'
   );
+}
+
+/**
+ * Check if the Qdrant collection exists and has points.
+ * Returns { exists: bool, pointCount: number }
+ */
+export async function checkCollectionHealth() {
+  if (!isQdrantConfigured()) return { exists: false, pointCount: 0 };
+  const config = getConfig();
+  try {
+    const res = await fetchWithTimeout(
+      `${config.qdrantUrl}/collections/${config.collectionName}`,
+      {
+        method: 'GET',
+        headers: { 'api-key': config.qdrantApiKey },
+      },
+      8000
+    );
+    if (!res.ok) return { exists: false, pointCount: 0 };
+    const data = await res.json();
+    const pointCount = data.result?.points_count ?? 0;
+    return { exists: true, pointCount };
+  } catch {
+    return { exists: false, pointCount: 0 };
+  }
 }
 
 // ─── NVIDIA Embedding ────────────────────────────────────────────────────────
@@ -54,7 +102,7 @@ export async function embedText(text) {
     throw new Error('[QdrantService] NVIDIA API key not configured.');
   }
 
-  const res = await fetch(config.nvidiaEmbedUrl, {
+  const res = await fetchWithTimeout(config.nvidiaEmbedUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -67,7 +115,7 @@ export async function embedText(text) {
       encoding_format: 'float',
       truncate: 'END',
     }),
-  });
+  }, 12000);
 
   if (!res.ok) {
     const errorBody = await res.text().catch(() => '');
@@ -112,7 +160,7 @@ async function searchQdrant({ vector, caseId, sectionTypes, limit = 5 }) {
     });
   }
 
-  const res = await fetch(
+  const res = await fetchWithTimeout(
     `${config.qdrantUrl}/collections/${config.collectionName}/points/search`,
     {
       method: 'POST',
@@ -128,7 +176,8 @@ async function searchQdrant({ vector, caseId, sectionTypes, limit = 5 }) {
         limit,
         with_payload: true,
       }),
-    }
+    },
+    12000
   );
 
   if (!res.ok) {
