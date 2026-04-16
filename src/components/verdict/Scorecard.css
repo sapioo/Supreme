@@ -1,0 +1,203 @@
+.scorecard {
+  width: 100%;
+  max-width: 60rem;
+  margin-bottom: var(--space-10);
+  background: rgba(26, 32, 39, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-surface-soft);
+  animation: fadeInUp 0.55s ease both;
+}
+
+.scorecard__title {
+  text-align: center;
+  font-size: clamp(1.45rem, 2.7vw, 2.2rem);
+  margin-bottom: var(--space-6);
+  color: var(--color-on-surface);
+}
+
+.scorecard__categories {
+  display: grid;
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+}
+
+.scorecard__cat {
+  background: rgba(36, 42, 50, 0.75);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+  animation: fadeInUp 0.4s ease both;
+}
+
+.scorecard__cat-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.scorecard__cat-icon {
+  color: var(--color-secondary);
+}
+
+.scorecard__cat-label {
+  color: var(--color-on-surface);
+  font-family: var(--font-label);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  flex: 1;
+}
+
+.scorecard__cat-winner {
+  font-family: var(--font-label);
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border-radius: var(--radius-sm);
+  padding: 0.2rem 0.45rem;
+}
+
+.scorecard__cat-winner--user {
+  background: rgba(233, 193, 118, 0.2);
+  color: var(--color-secondary);
+}
+
+.scorecard__cat-winner--ai {
+  background: rgba(183, 200, 222, 0.22);
+  color: var(--color-primary-fixed);
+}
+
+.scorecard__cat-bars {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.scorecard__cat-bar-row {
+  display: grid;
+  grid-template-columns: 26px 1fr 42px;
+  align-items: center;
+  gap: 8px;
+}
+
+.scorecard__cat-side-label {
+  font-family: var(--font-label);
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-outline);
+}
+
+.scorecard__cat-track {
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(47, 53, 61, 0.86);
+}
+
+.scorecard__cat-fill {
+  height: 100%;
+  transition: width 1.2s ease;
+}
+
+.scorecard__cat-fill--user {
+  background: linear-gradient(90deg, var(--color-secondary-fixed-dim), var(--color-secondary));
+}
+
+.scorecard__cat-fill--ai {
+  background: linear-gradient(90deg, var(--color-primary-container), var(--color-primary-fixed-dim));
+}
+
+.scorecard__cat-value {
+  text-align: right;
+  font-family: var(--font-label);
+  font-size: 0.66rem;
+  color: var(--color-on-surface);
+}
+
+.scorecard__cat-value--user {
+  color: var(--color-secondary);
+}
+
+.scorecard__cat-value--ai {
+  color: var(--color-primary-fixed-dim);
+}
+
+.scorecard__rounds {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: var(--space-6);
+}
+
+.scorecard__rounds-title {
+  text-align: center;
+  margin-bottom: var(--space-4);
+  color: var(--color-on-surface);
+}
+
+.scorecard__rounds-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: center;
+}
+
+.scorecard__round-card {
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  background: rgba(36, 42, 50, 0.8);
+  min-width: 96px;
+  text-align: center;
+}
+
+.scorecard__round-num {
+  font-family: var(--font-label);
+  font-size: 0.55rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-outline);
+}
+
+.scorecard__round-scores {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  margin: var(--space-1) 0;
+}
+
+.scorecard__round-score {
+  color: var(--color-on-surface-variant);
+}
+
+.scorecard__round-score--winner {
+  color: var(--color-secondary);
+}
+
+.scorecard__round-score--ai.scorecard__round-score--winner {
+  color: var(--color-primary-fixed);
+}
+
+.scorecard__round-vs {
+  color: var(--color-outline);
+  font-family: var(--font-label);
+  font-size: 0.5rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.scorecard__round-result {
+  font-family: var(--font-label);
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.scorecard__round-result--win {
+  color: var(--color-secondary);
+}
+
+.scorecard__round-result--lose {
+  color: var(--color-primary-fixed-dim);
+}

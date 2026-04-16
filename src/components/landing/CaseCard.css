@@ -1,0 +1,188 @@
+.case-card {
+  position: relative;
+  background: var(--color-surface-container-low);
+  border-radius: var(--radius-md);
+  padding: var(--space-6);
+  cursor: pointer;
+  overflow: hidden;
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  transition: transform var(--transition-base), background-color var(--transition-base), box-shadow var(--transition-base);
+  box-shadow: var(--shadow-card);
+  border-left: 2px solid transparent;
+}
+
+.case-card__texture {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 18% 24%, rgba(183, 200, 222, 0.08), transparent 52%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 60%);
+  pointer-events: none;
+}
+
+.case-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  position: relative;
+  z-index: 1;
+}
+
+.case-card__year {
+  color: var(--color-outline);
+  font-family: var(--font-label);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+}
+
+.case-card__court-pill {
+  font-family: var(--font-label);
+  font-size: 0.55rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  background: var(--color-tertiary-container);
+  color: var(--color-tertiary);
+  padding: 0.33rem 0.5rem;
+  border-radius: var(--radius-lg);
+}
+
+.case-card__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.case-card__name {
+  font-size: 1.7rem;
+  color: var(--color-on-surface);
+  margin-bottom: var(--space-3);
+  transition: color var(--transition-base);
+}
+
+.case-card__summary {
+  font-size: 0.96rem;
+  color: var(--color-on-surface-variant);
+  margin-bottom: var(--space-5);
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.case-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: auto;
+}
+
+.case-card__tag {
+  padding: 0.2rem 0.45rem;
+  font-family: var(--font-label);
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-radius: var(--radius-sm);
+  color: var(--color-primary);
+  background: var(--color-surface-container-highest);
+}
+
+.case-card__difficulty {
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.case-card__difficulty-label {
+  font-family: var(--font-label);
+  font-size: 0.58rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-outline);
+}
+
+.case-card__complexity {
+  display: flex;
+  gap: 4px;
+}
+
+.case-card__complexity-bar {
+  width: 14px;
+  height: 4px;
+  background: var(--color-surface-container-highest);
+}
+
+.case-card__complexity-bar--filled {
+  background: var(--color-secondary);
+}
+
+.case-card__hover-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  background: rgba(14, 20, 27, 0.82);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity var(--transition-base);
+  z-index: 4;
+}
+
+.case-card__hover-text {
+  font-size: 1.15rem;
+  color: var(--color-secondary);
+}
+
+.case-card__hover-icon {
+  color: var(--color-secondary);
+  font-size: 1.15rem;
+  transition: transform var(--transition-base);
+}
+
+.case-card--hovered {
+  transform: translateY(-6px);
+  background: var(--color-surface-container);
+  box-shadow: var(--shadow-card-hover);
+  border-left-color: var(--color-secondary);
+}
+
+.case-card--hovered .case-card__hover-overlay {
+  opacity: 1;
+}
+
+.case-card--hovered .case-card__hover-icon {
+  transform: translateX(4px);
+}
+
+.case-card--hovered .case-card__name {
+  color: var(--color-secondary);
+}
+
+.case-card:focus-visible {
+  outline: 2px solid rgba(183, 200, 222, 0.8);
+  outline-offset: 3px;
+}
+
+@media (max-width: 768px) {
+  .case-card {
+    min-height: 280px;
+    padding: var(--space-5);
+  }
+
+  .case-card__name {
+    font-size: 1.45rem;
+  }
+}

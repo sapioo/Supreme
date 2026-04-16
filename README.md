@@ -1,60 +1,16 @@
-# SUPREME — AI Courtroom Simulator
+# React + Vite
 
-A high-contrast, brutalist AI-powered courtroom simulation platform built with React, Vite, TypeScript, Tailwind CSS, and Framer Motion.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## Overview
+Currently, two official plugins are available:
 
-SUPREME simulates multi-phase court proceedings using AI agents for Prosecution and Defense counsels, presided over by an algorithmic judge. Users configure a case, then step through trial phases — from Opening Statements through Evidence, Cross-Examination, and a final Verdict.
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-## Features
+## React Compiler
 
-- **Case Configuration** — Define case type, plaintiff vs. defendant, case summary, facts, evidence uploads, and timeline of events
-- **Multi-Phase Trial** — Step through Opening → Evidence → Cross-Examination → Verdict
-- **Dual-Counsel View** — Split-panel simulation with Prosecution and Defense AI agents
-- **Procedural Controls** — Record witness testimony, pause/object to proceedings, redact sensitive content, navigate trial phases
-- **Secure by Design** — End-to-end encrypted, zero data logging, local processing
-- **Brutalist UI** — Strict monochrome design system: binary palette, 0px border-radius, monospace typography
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-## Tech Stack
+## Expanding the ESLint configuration
 
-| Layer | Technology |
-|---|---|
-| Framework | React 18 + TypeScript |
-| Build Tool | Vite |
-| Styling | Tailwind CSS |
-| Animations | Framer Motion |
-| Icons | Lucide React |
-
-## Getting Started
-
-```bash
-# Install dependencies
-npm install
-
-# Start the development server
-npm run dev
-```
-
-The app will be available at `http://localhost:3000`.
-
-## Project Structure
-
-```
-src/
-  App.tsx          # Core application — all views, state, and components
-  main.tsx         # React entry point
-  lib/
-    utils.ts       # Tailwind class utility (cn)
-public/
-  logo.png         # App logo
-```
-
-## Usage
-
-1. **Landing** — Click **START** to begin configuring a case
-2. **Configuration** — Fill in case type, parties, summary, individual facts, evidence, and timeline
-3. **Simulation** — Use the bottom control bar to navigate phases, pause, record, or redact
-
-## License
-
-MIT
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.

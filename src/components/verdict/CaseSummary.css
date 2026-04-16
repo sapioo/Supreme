@@ -1,0 +1,113 @@
+.case-summary {
+  width: 100%;
+  max-width: 60rem;
+  animation: fadeInUp 0.6s ease both;
+}
+
+.case-summary__title {
+  text-align: center;
+  color: var(--color-on-surface);
+  margin-bottom: var(--space-2);
+}
+
+.case-summary__subtitle {
+  text-align: center;
+  color: var(--color-on-surface-variant);
+  margin-bottom: var(--space-6);
+}
+
+.case-summary__rounds {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.case-summary__round {
+  background: rgba(26, 32, 39, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.case-summary__round--expanded {
+  border-color: rgba(233, 193, 118, 0.28);
+}
+
+.case-summary__round-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  background: rgba(47, 53, 61, 0.46);
+}
+
+.case-summary__round-header:hover {
+  background: rgba(47, 53, 61, 0.66);
+}
+
+.case-summary__round-num {
+  font-family: var(--font-label);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--color-primary-fixed);
+}
+
+.case-summary__round-toggle {
+  color: var(--color-secondary);
+  font-size: 1.2rem;
+}
+
+.case-summary__round-content {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.case-summary__arg {
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+}
+
+.case-summary__arg--user {
+  background: rgba(233, 193, 118, 0.12);
+}
+
+.case-summary__arg--ai {
+  background: rgba(183, 200, 222, 0.12);
+}
+
+.case-summary__arg-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+}
+
+.case-summary__arg-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+}
+
+.case-summary__arg--user .case-summary__arg-dot {
+  background: var(--color-secondary);
+}
+
+.case-summary__arg--ai .case-summary__arg-dot {
+  background: var(--color-primary-fixed-dim);
+}
+
+.case-summary__arg-label {
+  font-family: var(--font-label);
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-outline);
+}
+
+.case-summary__arg-text {
+  color: var(--color-on-surface);
+  font-size: 0.92rem;
+  line-height: 1.65;
+}

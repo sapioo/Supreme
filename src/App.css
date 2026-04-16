@@ -1,0 +1,21 @@
+/* ============================================
+   APP — Page Layout & Transitions
+   ============================================ */
+
+.app {
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Page containers */
+.app__page {
+  animation: fadeIn 0.5s ease both;
+}
+
+.app__page--landing {
+  /* Landing is a scrollable flow: hero → case grid */
+}
+
+.app__page--start {
+  min-height: 100vh;
+}
