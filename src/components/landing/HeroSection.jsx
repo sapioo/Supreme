@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import heroImage from '../../assets/hero.png';
 import './HeroSection.css';
 
-export default function HeroSection({ onExplore }) {
+export default function HeroSection({ onExplore, onArchive }) {
   const [reveal, setReveal] = useState(false);
 
   useEffect(() => {
@@ -48,24 +48,24 @@ export default function HeroSection({ onExplore }) {
 
       <div className={`hero__content ${reveal ? 'hero__content--revealed' : ''}`}>
         <div className="hero__eyebrow-wrap">
-          <span className="hero__eyebrow">The Sovereign Architect</span>
+          <span className="hero__eyebrow">SUPREME</span>
         </div>
 
         <h1 className="hero__title">
-          Explore Landmark <span>Cases</span>
+          Argue Landmark <span>Cases</span>
         </h1>
 
         <p className="hero__tagline">
-          Where legal tradition meets sovereign intelligence. Build strategy, test doctrine,
-          and enter the courtroom with authority.
+          Step into India's most consequential courtrooms. Face an AI counsel
+          and argue both sides of history.
         </p>
 
         <div className="hero__actions">
           <button className="hero__cta hero__cta--primary" onClick={onExplore} id="explore-cases-btn">
-            Initiate Briefing
+            Select a Case
           </button>
-          <button className="hero__cta hero__cta--ghost" onClick={onExplore}>
-            Browse Archive
+          <button className="hero__cta hero__cta--ghost" onClick={onArchive}>
+            My Sessions
           </button>
         </div>
       </div>

@@ -103,11 +103,11 @@ export default function CourtroomArena() {
       `The opposing counsel is ${userParty.name} (${state.selectedSide}).\n\n` +
       `RULES:\n` +
       `- Address the bench as "My Lords" or "Your Lordships"\n` +
-      `- Keep responses to 2-3 paragraphs\n` +
-      `- Be formal, authoritative, and precise\n` +
-      `- Directly counter the opponent's specific points\n` +
-      `- Cite constitutional articles and legal principles\n` +
-      `- Do NOT use bullet points — write in flowing legal prose\n` +
+      `- CRITICAL: Respond in 2-3 sentences MAXIMUM. Never more. Stop after the third sentence.\n` +
+      `- Be formal and precise\n` +
+      `- Directly counter the opponent's point in one sentence\n` +
+      `- Do NOT use bullet points — flowing prose only\n` +
+      `- Do NOT break character\n` +
       `- This is Round ${state.currentRound} of ${state.totalRounds}`;
 
     if (state.caseContext) {
@@ -339,11 +339,46 @@ export default function CourtroomArena() {
     }
   }, [dispatch, state.currentRound, state.totalRounds, state.roundScores, vapi]);
 
+  // ─── End Case early — verdict from scores so far ──────────────────────────
+  const handleEndCase = useCallback(() => {
+    if (vapi.isCallActive) vapi.stopCall();
+
+    // Use whatever round scores exist; if none, use 0s
+    const scores = state.roundScores.length > 0 ? state.roundScores : [];
+    const userTotal = scores.reduce(
+      (sum, r) => sum + Object.values(r.userScore).reduce((a, b) => a + b, 0), 0
+    );
+    const aiTotal = scores.reduce(
+      (sum, r) => sum + Object.values(r.aiScore).reduce((a, b) => a + b, 0), 0
+    );
+
+    dispatch({
+      type: 'END_GAME',
+      payload: {
+        winner: userTotal >= aiTotal ? 'user' : 'ai',
+        userTotal,
+        aiTotal,
+        margin: Math.abs(userTotal - aiTotal),
+        earlyVerdict: true,
+      },
+    });
+  }, [dispatch, state.roundScores, vapi]);
+
+  // ─── Timer end: lock input, stop mic, show next-round prompt ────────────────
   const handleTimerEnd = useCallback(() => {
-    if (isUserTurnActive && !state.isAiTyping && !roundComplete) {
-      handleSubmitArgument("The counsel requests the Court's indulgence. [Time expired]");
-    }
-  }, [isUserTurnActive, state.isAiTyping, roundComplete, handleSubmitArgument]);
+    if (!isUserTurnActive || roundComplete) return;
+    // Stop voice call immediately so user can't keep speaking
+    if (vapi.isCallActive) vapi.stopCall();
+    // Lock the turn — no fake message submitted
+    setIsUserTurnActive(false);
+    setRoundComplete(true);
+    // Score zero for user (didn't speak in time)
+    const userScore = { legalReasoning: 0, useOfPrecedent: 0, persuasiveness: 0, constitutionalValidity: 0 };
+    const aiScore = getAIScore(state.currentRound);
+    const judgeComment = 'The counsel did not present arguments within the allotted time.';
+    dispatch({ type: 'SCORE_ROUND', payload: { userScore, aiScore, judgeComment } });
+    setShowScores(true);
+  }, [isUserTurnActive, roundComplete, state.currentRound, dispatch, vapi]);
 
   const handleToggleVoiceMode = useCallback(() => {
     if (isVoiceMode && vapi.isCallActive) vapi.stopCall();
@@ -364,6 +399,13 @@ export default function CourtroomArena() {
   const isMicDisabled   = isInputDisabled || isAiSpeaking || vapi.isAssistantSpeaking;
   const displayVoiceError = vapi.lastError || voiceError;
 
+  // Next round button shows when round is complete
+  // (either both spoke, or timer expired and locked the round)
+  const currentRoundArgs = state.arguments.filter(a => a.round === state.currentRound);
+  const userHasSpoken = currentRoundArgs.some(a => a.side === 'user');
+  const aiHasSpoken   = currentRoundArgs.some(a => a.side === 'ai');
+  const canAdvanceRound = roundComplete && (userHasSpoken && aiHasSpoken || !isUserTurnActive);
+
   return (
     <div className="courtroom" id="courtroom-arena">
       {/* Loading overlay */}
@@ -376,14 +418,6 @@ export default function CourtroomArena() {
         </div>
       )}
 
-      {/* Qdrant badge */}
-      {qdrantReady && (
-        <div className="courtroom__qdrant-badge" title="Connected to case knowledge base">
-          <span className="courtroom__qdrant-dot" />
-          <span>Live Knowledge</span>
-        </div>
-      )}
-
       <TopBar
         caseName={state.selectedCase?.shortName}
         courtBadge={state.selectedCase?.courtBadge}
@@ -393,7 +427,14 @@ export default function CourtroomArena() {
         onTimerEnd={handleTimerEnd}
         isTimerRunning={isUserTurnActive && !roundComplete}
         timerKey={turnTimerKey}
-        timerLabel={isUserTurnActive ? 'Your Turn Time' : 'Turn Complete'}
+        timerLabel={
+          roundComplete && !isUserTurnActive
+            ? "Time's Up"
+            : isUserTurnActive
+              ? 'Your Turn'
+              : 'Turn Complete'
+        }
+        onEndCase={handleEndCase}
       />
 
       <section className="courtroom__scene">
@@ -410,7 +451,7 @@ export default function CourtroomArena() {
             </div>
           )}
 
-          {roundComplete && (
+          {canAdvanceRound && (
             <div className="courtroom__round-action">
               <button
                 className="courtroom__next-btn"
@@ -419,6 +460,8 @@ export default function CourtroomArena() {
               >
                 {state.currentRound >= state.totalRounds ? (
                   <><span>Hear the Verdict</span><span className="courtroom__next-icon">⚖</span></>
+                ) : !userHasSpoken ? (
+                  <><span>Proceed to Round {state.currentRound + 1}</span><span className="courtroom__next-icon">→</span></>
                 ) : (
                   <><span>Round {state.currentRound + 1}</span><span className="courtroom__next-icon">→</span></>
                 )}

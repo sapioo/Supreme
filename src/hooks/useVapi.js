@@ -162,28 +162,31 @@ export default function useVapi({
         provider: 'openai',
         model: 'gpt-4o-mini',
         messages: [{ role: 'system', content: prompt || 'You are an AI legal counsel in a courtroom debate simulation.' }],
+        // Hard cap on response length — keeps AI answers short so user has time to speak
+        maxTokens: 120,
+        temperature: 0.7,
       },
       voice: { provider: '11labs', voiceId: 'pNInz6obpgDQGcFmaJgB' },
       transcriber: {
         provider: 'deepgram',
         model: 'nova-2',
         language: 'en',
-        // Wait 500ms of silence before finalising transcript — prevents
-        // breath pauses from cutting the recording mid-sentence
         endpointing: 500,
       },
-      // Prevent user from interrupting the AI while it's speaking
       interruptionsEnabled: false,
-      firstMessage: "My Lords, the opposing counsel is present and ready to address the Court.",
+      // Short first message — don't waste the user's turn time
+      firstMessage: "My Lords, I am ready.",
     };
 
     try {
       if (assistantId && assistantId !== 'your-vapi-assistant-id-here') {
         console.log('[Vapi] Starting with assistant ID + overrides');
         await vapi.start(assistantId, {
+          // Override everything that controls response length
           model: inlineConfig.model,
           transcriber: inlineConfig.transcriber,
           interruptionsEnabled: false,
+          firstMessage: inlineConfig.firstMessage,
         });
       } else {
         console.log('[Vapi] Starting with inline config');

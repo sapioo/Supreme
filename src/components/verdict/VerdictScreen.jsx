@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useGame, useGameDispatch } from '../../context/GameContext';
+import { saveSession } from '../../services/sessionStorage';
 import ScalesTipping from './ScalesTipping';
 import Scorecard from './Scorecard';
 import CaseSummary from './CaseSummary';
@@ -8,16 +9,31 @@ import './VerdictScreen.css';
 export default function VerdictScreen() {
   const state = useGame();
   const dispatch = useGameDispatch();
+  const savedRef = useRef(false);
 
-  const [phase, setPhase] = useState('blackout');    // blackout → announce → scales → scorecard
+  const [phase, setPhase] = useState('blackout');
   const [showScorecard, setShowScorecard] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
 
   const verdict = state.verdict;
   const isUserWinner = verdict?.winner === 'user';
 
+  // Save session once on mount
   useEffect(() => {
-    // Dramatic reveal sequence
+    if (!savedRef.current && verdict && state.selectedCase) {
+      savedRef.current = true;
+      saveSession({
+        caseData: state.selectedCase,
+        selectedSide: state.selectedSide,
+        difficulty: state.difficulty,
+        arguments: state.arguments,
+        roundScores: state.roundScores,
+        verdict,
+      });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
     const t1 = setTimeout(() => setPhase('announce'), 1500);
     const t2 = setTimeout(() => setPhase('scales'), 3500);
     const t3 = setTimeout(() => setShowScorecard(true), 5500);

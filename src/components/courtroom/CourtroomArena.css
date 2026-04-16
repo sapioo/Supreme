@@ -1,13 +1,13 @@
 .courtroom {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;        /* fill viewport exactly */
+  overflow: hidden;     /* prevent page-level scroll */
   background:
     radial-gradient(circle at 12% 8%, rgba(183, 200, 222, 0.08), transparent 35%),
     radial-gradient(circle at 84% 12%, rgba(233, 193, 118, 0.09), transparent 37%),
     linear-gradient(180deg, rgba(14, 20, 27, 1), rgba(9, 15, 21, 1));
   position: relative;
-  overflow: hidden;
 }
 
 .courtroom::before {
@@ -31,14 +31,22 @@
   grid-template-columns: 320px minmax(0, 1fr);
   gap: var(--space-4);
   padding: var(--space-4);
+  /* Fix: constrain height so sidebar stays sticky while chat scrolls */
+  height: 0;
   min-height: 0;
+  overflow: hidden;
 }
 
 .courtroom__side-panel {
+  /* Sidebar stays fixed in place — does not scroll */
+  height: 100%;
   min-height: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  overflow: hidden;
+  position: sticky;
+  top: 0;
 }
 
 .courtroom__side-panel .judge-bench {
@@ -132,50 +140,10 @@
   to { transform: rotate(360deg); }
 }
 
-.courtroom__qdrant-badge {
-  position: absolute;
-  top: 1.1rem;
-  right: 1.25rem;
-  z-index: 12;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.38rem;
-  padding: 0.25rem 0.55rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid rgba(172, 207, 186, 0.34);
-  background: rgba(15, 47, 33, 0.58);
-  font-family: var(--font-label);
-  font-size: 0.56rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-tertiary);
-  pointer-events: none;
-}
-
-.courtroom__qdrant-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--color-tertiary);
-  box-shadow: 0 0 8px rgba(172, 207, 186, 0.6);
-  animation: pulseDot 1.8s ease-in-out infinite;
-}
-
-@keyframes pulseDot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.8); }
-}
-
 @media (max-width: 1080px) {
   .courtroom__scene {
     grid-template-columns: 1fr;
     gap: var(--space-3);
     padding: var(--space-3);
-  }
-
-  .courtroom__qdrant-badge {
-    top: auto;
-    right: 0.75rem;
-    bottom: 0.75rem;
   }
 }

@@ -3,6 +3,7 @@
   min-height: 92vh;
   display: flex;
   align-items: center;
+  justify-content: center;
   overflow: hidden;
 }
 
@@ -22,8 +23,8 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(14, 20, 27, 0.95) 0%, rgba(14, 20, 27, 0.7) 50%, rgba(14, 20, 27, 0.34) 100%),
-    radial-gradient(circle at 18% 20%, rgba(233, 193, 118, 0.14), transparent 42%);
+    linear-gradient(180deg, rgba(14, 20, 27, 0.92) 0%, rgba(14, 20, 27, 0.65) 50%, rgba(14, 20, 27, 0.34) 100%),
+    radial-gradient(circle at 50% 40%, rgba(233, 193, 118, 0.12), transparent 55%);
 }
 
 .hero__particles {
@@ -61,11 +62,16 @@
 .hero__content {
   position: relative;
   z-index: 1;
+  width: 100%;
   max-width: 72rem;
   padding: var(--space-16) clamp(1.5rem, 7vw, 6rem);
   opacity: 0;
   transform: translateY(24px);
   transition: transform 0.65s ease, opacity 0.65s ease;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .hero__content--revealed {
@@ -92,10 +98,11 @@
 .hero__title {
   font-size: clamp(2.2rem, 6.5vw, 5.4rem);
   line-height: 1.02;
-  max-width: 12ch;
+  max-width: 16ch;
   margin-bottom: var(--space-5);
   color: var(--color-on-surface);
   text-wrap: balance;
+  text-align: center;
 }
 
 .hero__title span {
@@ -108,12 +115,14 @@
   font-size: clamp(1rem, 1.8vw, 1.28rem);
   color: rgba(196, 198, 205, 0.95);
   margin-bottom: var(--space-8);
+  text-align: center;
 }
 
 .hero__actions {
   display: flex;
   gap: var(--space-4);
   flex-wrap: wrap;
+  justify-content: center;
 }
 
 .hero__cta {

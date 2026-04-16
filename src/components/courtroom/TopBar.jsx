@@ -11,6 +11,7 @@ export default function TopBar({
   isTimerRunning = true,
   timerKey,
   timerLabel,
+  onEndCase,
 }) {
   const [time, setTime] = useState(timer);
   const hasEndedRef = useRef(false);
@@ -84,13 +85,27 @@ export default function TopBar({
         </div>
       </div>
 
-      {/* Right: Timer */}
-      <div className={`topbar__timer ${isUrgent ? 'topbar__timer--urgent' : ''}`}>
-        <span className="topbar__timer-label">{timerLabel || 'Time Remaining'}</span>
-        <span className="topbar__timer-value">{formatTime(time)}</span>
-        <div className="topbar__timer-bar">
-          <div className="topbar__timer-fill" style={{ width: `${100 - progressPercent}%` }} />
+      {/* Right: Timer + End Case */}
+      <div className="topbar__right">
+        <div className={`topbar__timer ${isUrgent ? 'topbar__timer--urgent' : ''}`}>
+          <span className="topbar__timer-label">{timerLabel || 'Time Remaining'}</span>
+          <span className="topbar__timer-value">{formatTime(time)}</span>
+          <div className="topbar__timer-bar">
+            <div className="topbar__timer-fill" style={{ width: `${100 - progressPercent}%` }} />
+          </div>
         </div>
+
+        {onEndCase && (
+          <button
+            className="topbar__end-btn"
+            onClick={onEndCase}
+            id="end-case-btn"
+            title="End case and receive verdict based on arguments so far"
+          >
+            <span className="topbar__end-icon">⚖</span>
+            <span>End</span>
+          </button>
+        )}
       </div>
     </header>
   );

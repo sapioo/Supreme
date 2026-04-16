@@ -63,9 +63,9 @@ export async function checkNIMConnectivity() {
  */
 // Maps difficulty to max_tokens for AI responses
 const DIFFICULTY_TOKENS = {
-  easy:   80,    // ~2-3 sentences
-  medium: 150,   // ~1 short paragraph
-  hard:   280,   // ~2 paragraphs with citations
+  easy:   60,    // 1-2 short sentences
+  medium: 100,   // 2-3 sentences max
+  hard:   180,   // short paragraph with one citation
 };
 
 export async function generateAIArgument({
@@ -91,10 +91,10 @@ export async function generateAIArgument({
 
   // Difficulty-specific instruction
   const lengthInstruction = {
-    easy:   'Keep your response to 2-3 sentences only — be brief and direct.',
-    medium: 'Keep your response to 1 short paragraph only.',
-    hard:   'Give a focused 2-paragraph response with specific constitutional articles and one case citation.',
-  }[difficulty] ?? 'Keep your response to 1 short paragraph only.';
+    easy:   'Respond in exactly 1-2 short sentences. Stop after the second sentence. End on a complete sentence.',
+    medium: 'Respond in exactly 2-3 short sentences. Stop after the third sentence. End on a complete sentence.',
+    hard:   'Respond in 3-4 sentences with one constitutional article cited. End on a complete sentence.',
+  }[difficulty] ?? 'Respond in exactly 2-3 short sentences. End on a complete sentence.';
 
   // Build the system prompt
   let systemPrompt = `You are ${aiParty.name}, arguing as the ${aiSide} in the landmark Indian Supreme Court case "${caseData.shortName}" (${caseData.year}).
@@ -153,6 +153,7 @@ STRICT RULES:
       temperature: 0.7,
       top_p: 0.9,
       max_tokens: maxTokens,
+      stop: ['\n\n', '---'],   // stop at paragraph break
       stream: false,
     }),
     signal: AbortSignal.timeout(30000), // 30s timeout

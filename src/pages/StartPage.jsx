@@ -28,11 +28,11 @@ export default function StartPage({ onStart }) {
       <span className="start-page__protocol">Case Protocol #882-Alpha // System Active</span>
 
       <section className="start-page__panel texture-leather">
-        <p className="start-page__brand">CourtRoom AI</p>
+        <p className="start-page__brand">SUPREME</p>
 
         <h1 className="start-page__title">Experience the Bench.</h1>
         <p className="start-page__subtitle">
-          Witness the fusion of legal tradition and sovereign intelligence.
+          Argue landmark Indian cases against an AI counsel.
           Your argument is the evidence.
         </p>
 
@@ -56,11 +56,9 @@ export default function StartPage({ onStart }) {
           onClick={onStart}
         >
           <span className="start-page__start-btn-shine" aria-hidden="true" />
-          <span className="start-page__start-btn-text">Start Trial</span>
+          <span className="start-page__start-btn-text">Enter the Court</span>
           <span className="start-page__start-btn-icon" aria-hidden="true">→</span>
         </button>
-
-        <p className="start-page__footnote">The Digital Gavel</p>
       </section>
     </main>
   );
