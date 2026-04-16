@@ -1,242 +1,165 @@
-# CourtRoom AI (Supreme)
+<div align="center">
+  <h1>S U P R E M E</h1>
+  <p><i>An interactive, voice-enabled legal debate simulator focused on landmark Indian Supreme Court cases.</i></p>
+</div>
 
-CourtRoom AI is an interactive, voice-enabled legal debate simulator focused on landmark Indian Supreme Court cases.
+---
 
-You pick a case, choose a side (petitioner/respondent), argue across multiple rounds, and receive scored judicial feedback with a final verdict.
+**CourtRoom AI (Supreme)** drops you into the highest court of the land. Pick a landmark case, choose your side (petitioner or respondent), argue your stance across multiple rounds, and receive scored judicial feedback and a final verdict from an AI bench. 
 
-The app combines:
-- a cinematic React frontend,
-- live voice interaction through Vapi,
-- AI argument generation/scoring through NVIDIA NIM,
-- and retrieval-augmented context from Qdrant (ingested from Indian Kanoon judgments).
+Designed for both text and live voice interaction, Supreme combines a cinematic React frontend with state-of-the-art LLMs and real-time retrieval-augmented context.
 
-## What this project does
+**CourtRoom AI (Supreme)** drops you into the highest court of the land. Pick a landmark case, choose your side (petitioner or respondent), argue your stance across multiple rounds, and receive scored judicial feedback and a final verdict from an AI bench.
 
-At a high level, the product simulates a courtroom battle:
+Designed for both text and live voice interaction, Supreme combines a cinematic React frontend with state-of-the-art LLMs and real-time retrieval-augmented context.
 
-1. You enter the experience and browse landmark cases.
-2. You choose which side to represent.
-3. The opposing side is played by AI (text and/or voice).
-4. Each round is scored on legal dimensions.
-5. After all rounds, a verdict and score breakdown are shown.
+## 🚀 The Experience
 
-Core goals:
-- Make legal learning interactive and strategic.
-- Ground AI responses in real legal context when available.
-- Support both voice-first and text fallback gameplay.
+1.  **Enter the Court:** Browse a curated list of landmark legal cases.
+2.  **Take a Stand:** Choose to represent the Petitioner or Respondent.
+3.  **The Debate:** Face off against an opposing side powered by AI (via text or live voice).
+4.  **Judicial Scrutiny:** Each argument is rigorously scored on precise legal dimensions.
+5.  **The Verdict:** Conclude the trial to receive a final verdict, scorecard, and case breakdown.
 
-## Tech stack
+## 🛠️ Tech Stack
 
-- Frontend: React 19 + Vite
-- State management: React Context + Reducer (`GameContext`)
-- Voice runtime: `@vapi-ai/web`
-- LLM generation/scoring: NVIDIA NIM (OpenAI-compatible API)
-- Vector search: Qdrant Cloud
-- Embeddings: NVIDIA `nv-embed-v1`
-- Corpus source: Indian Kanoon API (via ingestion script)
+| Component | Technology / Service |
+| :--- | :--- |
+| **Frontend UI** | React 19 + Vite |
+| **State Management** | React Context + Reducer (`GameContext`) |
+| **Voice Runtime** | `@vapi-ai/web` (Vapi) |
+| **LLM Generation** | NVIDIA NIM (`meta/llama-3.3-70b-instruct`) |
+| **Vector Search** | Qdrant Cloud |
+| **Embeddings** | NVIDIA `nv-embed-v1` |
+| **Corpus Source** | Indian Kanoon API (via custom ingest pipeline) |
 
-## Product flow (screen-by-screen)
+## 🧠 AI Architecture
 
-Main page states are managed in `src/context/GameContext.jsx`:
+Supreme operates on a layered, fallback-resilient architecture to ensure uninterrupted courtroom battles.
 
-- `start` -> Branded entry screen
-- `landing` -> Case browsing and selection
-- `chooseSide` -> Pick petitioner/respondent + difficulty
-- `loading` -> Short transition before courtroom
-- `courtroom` -> Main debate arena (voice/text rounds)
-- `verdict` -> Final result, scorecard, case summary
+### 1\. Argument Generation (Text & Voice)
 
-Primary orchestration:
-- `src/App.jsx` handles page routing based on global game state.
-- `src/components/courtroom/CourtroomArena.jsx` runs round logic, AI responses, scoring, timers, and voice controls.
+Powered by **NVIDIA NIM** (`meta/llama-3.3-70b-instruct`). The prompt is dynamically constructed using selected case metadata, the opposing party's stance, current round context, recent conversation history, and RAG context.
 
-## How AI works in this app
+  * *Fallback:* Curated mock responses located in `src/data/mockAI.js`.
 
-### 1) Text mode argument generation
+### 2\. Live Voice Mode
 
-In text mode, `src/services/nimService.js` calls NVIDIA NIM to generate opposing counsel responses.
+Managed via `src/hooks/useVapi.js`. It handles the full Vapi session lifecycle: call start/stop, user/assistant transcripts, speaking detection, and mute behaviors. Voice can be toggled seamlessly to text mode inside the `CourtroomArena`.
 
-- Model: `meta/llama-3.3-70b-instruct`
-- Prompt includes:
-  - selected case metadata,
-  - selected side and opposing party,
-  - current round,
-  - optional retrieved legal context from Qdrant,
-  - recent conversation history.
+### 3\. Judicial Scoring
 
-If NIM fails or is unavailable, it falls back to curated mock responses in `src/data/mockAI.js`.
+User arguments are evaluated on four distinct dimensions:
 
-### 2) Argument scoring
+  * `legalReasoning`
+  * `useOfPrecedent`
+  * `persuasiveness`
+  * `constitutionalValidity`
 
-User arguments are scored on four dimensions:
-- `legalReasoning`
-- `useOfPrecedent`
-- `persuasiveness`
-- `constitutionalValidity`
+*Scoring defaults to structured JSON output from NVIDIA NIM, falling back to local heuristic scoring if the API is unreachable.*
 
-Scoring first attempts NIM-based structured JSON scoring, then falls back to local heuristic scoring in `src/data/mockAI.js`.
+### 4\. Retrieval-Augmented Generation (RAG)
 
-### 3) Voice mode
+Managed via `src/services/qdrantService.js`. Real judgment texts are injected into prompts to ground the AI in actual jurisprudence. Queries are embedded via NVIDIA API, searched against the Qdrant `courtroom_cases` collection, and filtered by case/section type.
 
-`src/hooks/useVapi.js` manages Vapi session lifecycle and events:
-- call start/stop,
-- user and assistant transcripts,
-- speaking detection,
-- mute behavior,
-- connection/error state.
+## ⚖️ Legal Data Ingestion Pipeline
 
-Voice is integrated into courtroom flow from `CourtroomArena` and can be toggled off to use text mode.
+A standalone Node script builds the RAG corpus by extracting and processing data from Indian Kanoon.
 
-### 4) Retrieval-Augmented Generation (RAG)
+**The Pipeline:**
 
-`src/services/qdrantService.js`:
-- creates embeddings for queries via NVIDIA embeddings API,
-- searches Qdrant collection `courtroom_cases`,
-- filters by case and legal section type,
-- formats results into prompt-ready context.
+1.  Fetch judgment text from Indian Kanoon via known doc IDs.
+2.  Sanitize HTML into plain text.
+3.  Chunk text into semantic windows (target token sizes + overlap).
+4.  Classify chunks (petitioner/respondent arguments, precedent, articles, reasoning, final order).
+5.  Generate embeddings using NVIDIA `nv-embed-v1`.
+6.  Upsert vectors and metadata into Qdrant.
 
-This improves relevance by injecting case-grounded legal excerpts into prompts.
-
-## Legal data ingestion pipeline
-
-`src/services/ingestCases.js` is a standalone Node script that builds the Qdrant corpus.
-
-Pipeline:
-1. Fetch judgment text from Indian Kanoon by known doc IDs.
-2. Clean HTML -> plain text.
-3. Chunk text into semantic windows (target token sizes + overlap).
-4. Classify chunks (petitioner/respondent arguments, precedent, constitutional article, court reasoning, final order).
-5. Generate embeddings using NVIDIA `nv-embed-v1`.
-6. Upsert vectors + metadata into Qdrant.
-
-Run it with:
+To run the pipeline (Warning: recreates the target collection):
 
 ```bash
 npm run ingest
 ```
 
-Important: the ingestion script recreates the target collection before re-populating it.
+## 💻 Development Setup
 
-## Project structure
+### Environment Variables
 
-```text
-src/
-  App.jsx
-  main.jsx
-  context/
-    GameContext.jsx
-  pages/
-    StartPage.jsx
-    LandingPage.jsx
-  components/
-    landing/
-    courtroom/
-    verdict/
-    common/
-  data/
-    cases.js
-    mockAI.js
-  hooks/
-    useVapi.js
-  services/
-    nimService.js
-    qdrantService.js
-    ingestCases.js
-```
+Create a `.env` file in the project root:
 
-## Environment variables
-
-Create `.env` in the project root.
-
-Use this template:
-
-```bash
+```env
+# Voice (Vapi)
 VITE_VAPI_PUBLIC_KEY=your-vapi-public-key
 VITE_VAPI_ASSISTANT_ID=your-vapi-assistant-id
 
+# LLM & Embeddings (NVIDIA)
 VITE_NVIDIA_API_KEY=your-nvidia-api-key
 
+# Vector DB (Qdrant)
 VITE_QDRANT_URL=https://your-qdrant-cluster-url
 VITE_QDRANT_API_KEY=your-qdrant-api-key
 
+# Data Source (Indian Kanoon)
 VITE_INDIANKANOON_API_KEY=your-indiankanoon-api-key
 ```
 
-Notes:
-- `VITE_` prefixes are intentionally used because values are read in browser/runtime code.
-- Do not commit real API keys.
-- If Qdrant/NVIDIA keys are missing, the app still runs with partial fallback behavior (limited/no RAG, mock fallback for generation).
+> **Security Note:** `VITE_` prefixes are exposed to the browser runtime. Never commit real API keys to version control. If exposed, rotate them immediately.
 
-## Development setup
-
-Install dependencies:
+### Installation & Scripts
 
 ```bash
-npm install
+npm install     # Install dependencies
+npm run dev     # Start Vite dev server
+npm run build   # Build for production
+npm run preview # Preview production build locally
+npm run lint    # Run ESLint
+npm run ingest  # Ingest judgment corpus into Qdrant
 ```
 
-Start dev server:
+## 🏗️ Project Structure
 
-```bash
-npm run dev
+\<details\>
+\<summary\>Click to expand file tree\</summary\>
+
+```text
+src/
+ ├── App.jsx                 # Global routing based on game state
+ ├── main.jsx
+ ├── context/
+ │   └── GameContext.jsx     # State orchestration (start, landing, chooseSide, courtroom, verdict)
+ ├── pages/
+ │   ├── StartPage.jsx
+ │   └── LandingPage.jsx
+ ├── components/
+ │   ├── landing/
+ │   ├── courtroom/          # Contains CourtroomArena.jsx (core round/timer/voice logic)
+ │   ├── verdict/
+ │   └── common/
+ ├── data/
+ │   ├── cases.js
+ │   └── mockAI.js           # Fallback local deterministic AI
+ ├── hooks/
+ │   └── useVapi.js          # Voice lifecycle management
+ └── services/
+     ├── nimService.js       # NVIDIA NIM LLM logic
+     ├── qdrantService.js    # RAG search logic
+     └── ingestCases.js      # Data pipeline script
 ```
 
-Build production bundle:
+\</details\>
 
-```bash
-npm run build
-```
+## 🛡️ Operational Requirements & Fallbacks
 
-Preview production build locally:
+  * **Graceful Degradation:** \* Missing Vapi keys? The app gracefully disables voice UI; text mode remains 100% functional.
+      * NVIDIA NIM down? Falls back to local deterministic mock logic.
+      * Qdrant empty/unreachable? Gameplay continues without RAG context.
+  * **Vector Specs:** Requires `nvidia/nv-embed-v1` (vector size 4096).
+  * **Collection Name:** Qdrant collection must be named `courtroom_cases`.
+  * **Proxies:** Both NIM (`/api/nvidia/*`) and Qdrant (`/api/qdrant/*`) expect to be reachable via the Vite proxy defined in `vite.config.js` during development.
 
-```bash
-npm run preview
-```
+## 🗺️ Roadmap
 
-Lint:
-
-```bash
-npm run lint
-```
-
-## Scripts
-
-From `package.json`:
-
-- `npm run dev` - Start Vite dev server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-- `npm run lint` - Run ESLint
-- `npm run ingest` - Ingest judgment corpus into Qdrant
-
-## Runtime behavior and fallbacks
-
-- If Vapi credentials are missing, voice UI is unavailable but text mode remains usable.
-- If NVIDIA NIM is unavailable, AI text generation/scoring falls back to mock logic.
-- If Qdrant is unavailable or empty, gameplay continues without retrieved context.
-
-This layered fallback design keeps the core experience functional during partial outages or local setup gaps.
-
-## Known operational requirements
-
-- Qdrant collection name expected by runtime: `courtroom_cases`
-- Embedding model expected: `nvidia/nv-embed-v1` (vector size 4096)
-- NIM chat endpoint expected to be reachable via Vite proxy in dev (`/api/nvidia/*`)
-- Qdrant expected to be reachable via Vite proxy in dev (`/api/qdrant/*`)
-
-Proxy config is defined in `vite.config.js`.
-
-## Security note
-
-If credentials were ever committed accidentally, rotate all exposed keys immediately (Vapi, NVIDIA, Qdrant, Indian Kanoon) and replace them with new values in local `.env`.
-
-## Roadmap ideas (optional)
-
-- Replace mock fallback with a local deterministic rules engine for offline mode.
-- Add automated tests for reducer transitions and courtroom round logic.
-- Add telemetry dashboards for response quality, latency, and win-rate balance.
-- Support additional case families and multilingual arguments.
-
-## License
-
-No license file is currently defined in this repository.
+  - [ ] Replace mock fallback with a local, offline deterministic rules engine.
+  - [ ] Implement automated testing for reducer transitions and debate round logic.
+  - [ ] Integrate telemetry dashboards for response quality, latency, and user win-rate balance.
+  - [ ] Expand case library to include international case families and multilingual argument support.
