@@ -18,45 +18,46 @@ const NVIDIA_API_KEY   = process.env.VITE_NVIDIA_API_KEY;
 const IK_API_KEY       = process.env.VITE_INDIANKANOON_API_KEY;
 
 const COLLECTION_NAME  = 'courtroom_cases';
-const VECTOR_SIZE      = 4096; // nv-embed-v2 dimension
+const VECTOR_SIZE      = 4096; // nv-embed-v1 dimension
 const NVIDIA_EMBED_URL = 'https://integrate.api.nvidia.com/v1/embeddings';
-const NVIDIA_MODEL     = 'nvidia/nv-embed-v2';
+const NVIDIA_MODEL     = 'nvidia/nv-embed-v1';
 
 const IK_SEARCH_URL    = 'https://api.indiankanoon.org/search/';
 const IK_DOC_URL       = 'https://api.indiankanoon.org/doc/';
 
-// Cases to ingest — mapped to search queries and metadata
+// Cases to ingest — using known Indian Kanoon doc IDs for accuracy
+// docId can be found from indiankanoon.org URLs: /doc/<docId>/
 const CASES_TO_INGEST = [
   {
-    searchQuery: 'Ram Janmabhoomi Babri Masjid',
+    docId: '168019',          // M Siddiq vs Mahant Suresh Das (Ram Janmabhoomi) 2019
     caseId: 'ram-janmabhoomi',
     caseName: 'Ram Janmabhoomi vs Babri Masjid',
     year: 2019,
     court: 'Supreme Court of India',
   },
   {
-    searchQuery: 'Kesavananda Bharati State of Kerala',
+    docId: '257876',          // Kesavananda Bharati vs State of Kerala 1973
     caseId: 'kesavananda-bharati',
     caseName: 'Kesavananda Bharati vs State of Kerala',
     year: 1973,
     court: 'Supreme Court of India',
   },
   {
-    searchQuery: 'Navtej Singh Johar Union of India Section 377',
+    docId: '736438',          // Navtej Singh Johar vs Union of India 2018
     caseId: 'navtej-johar',
     caseName: 'Navtej Singh Johar vs Union of India',
     year: 2018,
     court: 'Supreme Court of India',
   },
   {
-    searchQuery: 'K.S. Puttaswamy Union of India Right to Privacy',
+    docId: '91938676',        // K.S. Puttaswamy vs Union of India 2017
     caseId: 'puttaswamy',
     caseName: 'K.S. Puttaswamy vs Union of India',
     year: 2017,
     court: 'Supreme Court of India',
   },
   {
-    searchQuery: 'Vishaka State of Rajasthan sexual harassment',
+    docId: '1031794',         // Vishaka vs State of Rajasthan 1997
     caseId: 'vishaka',
     caseName: 'Vishaka vs State of Rajasthan',
     year: 1997,
@@ -426,14 +427,20 @@ async function generateEmbeddings(texts) {
 
 /**
  * Search Indian Kanoon for a case and return the first result's doc ID.
+ * Indian Kanoon search API expects POST with form-encoded body.
  */
 async function searchCase(query) {
-  const url = `${IK_SEARCH_URL}?formInput=${encodeURIComponent(query)}&pagenum=0`;
-  const res = await fetchWithRetry(url, {
+  const params = new URLSearchParams();
+  params.append('formInput', query);
+  params.append('pagenum', '0');
+
+  const res = await fetchWithRetry(IK_SEARCH_URL, {
     method: 'POST',
     headers: {
       'Authorization': `Token ${IK_API_KEY}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
     },
+    body: params.toString(),
   });
 
   const data = await res.json();
@@ -452,6 +459,7 @@ async function searchCase(query) {
 
 /**
  * Fetch the full judgment text for a given doc ID.
+ * Indian Kanoon doc API expects POST with form-encoded body.
  */
 async function fetchJudgment(docId) {
   const url = `${IK_DOC_URL}${docId}/`;
@@ -459,7 +467,9 @@ async function fetchJudgment(docId) {
     method: 'POST',
     headers: {
       'Authorization': `Token ${IK_API_KEY}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
     },
+    body: '',
   });
 
   const data = await res.json();
@@ -470,28 +480,13 @@ async function fetchJudgment(docId) {
 // ─── Main Ingestion Pipeline ─────────────────────────────────────────────────
 
 async function processCase(caseConfig, startPointId) {
-  const { searchQuery, caseId, caseName, year, court } = caseConfig;
+  const { docId, caseId, caseName, year, court } = caseConfig;
   log(`\n${'═'.repeat(60)}`);
   log(`Processing: ${caseName}`);
   log(`${'═'.repeat(60)}`);
 
-  // Step 1: Search for the case on Indian Kanoon
-  log('Step 1: Searching Indian Kanoon...');
-  let docId, title;
-  try {
-    const result = await searchCase(searchQuery);
-    docId = result.docId;
-    title = result.title;
-    log(`Found: "${title}" (Doc ID: ${docId})`);
-  } catch (err) {
-    logError(`Failed to search for "${caseName}". Skipping.`, err);
-    return { pointId: startPointId, chunksIngested: 0 };
-  }
-
-  await sleep(1500); // Rate limit courtesy
-
-  // Step 2: Fetch full judgment
-  log('Step 2: Fetching full judgment text...');
+  // Step 1: Fetch full judgment directly by doc ID
+  log(`Step 1: Fetching judgment (Doc ID: ${docId})...`);
   let judgmentText;
   try {
     judgmentText = await fetchJudgment(docId);
@@ -506,8 +501,8 @@ async function processCase(caseConfig, startPointId) {
     return { pointId: startPointId, chunksIngested: 0 };
   }
 
-  // Step 3: Chunk the judgment
-  log('Step 3: Chunking judgment text...');
+  // Step 2: Chunk the judgment
+  log('Step 2: Chunking judgment text...');
   const chunks = chunkText(judgmentText);
   log(`Created ${chunks.length} chunks`);
 
@@ -516,8 +511,8 @@ async function processCase(caseConfig, startPointId) {
     return { pointId: startPointId, chunksIngested: 0 };
   }
 
-  // Step 4: Classify chunks and build metadata
-  log('Step 4: Classifying chunks...');
+  // Step 3: Classify chunks and build metadata
+  log('Step 3: Classifying chunks...');
   const classifiedChunks = chunks.map((text, i) => {
     const sectionType = classifySection(text);
     const side = determineSide(sectionType);
@@ -539,8 +534,8 @@ async function processCase(caseConfig, startPointId) {
   });
   log(`Classification summary: ${JSON.stringify(typeSummary)}`);
 
-  // Step 5: Generate embeddings in batches
-  log('Step 5: Generating NVIDIA embeddings...');
+  // Step 4: Generate embeddings in batches
+  log('Step 4: Generating NVIDIA embeddings...');
   const BATCH_SIZE = 5;
   const allEmbeddings = [];
 
@@ -563,8 +558,8 @@ async function processCase(caseConfig, startPointId) {
     await sleep(2000); // Rate limit between batches
   }
 
-  // Step 6: Upsert into Qdrant
-  log('Step 6: Upserting into Qdrant...');
+  // Step 5: Upsert into Qdrant
+  log('Step 5: Upserting into Qdrant...');
   let pointId = startPointId;
   const points = [];
 
