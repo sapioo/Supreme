@@ -164,16 +164,26 @@ export default function useVapi({
         messages: [{ role: 'system', content: prompt || 'You are an AI legal counsel in a courtroom debate simulation.' }],
       },
       voice: { provider: '11labs', voiceId: 'pNInz6obpgDQGcFmaJgB' },
-      transcriber: { provider: 'deepgram', model: 'nova-2', language: 'en' },
+      transcriber: {
+        provider: 'deepgram',
+        model: 'nova-2',
+        language: 'en',
+        // Wait 500ms of silence before finalising transcript — prevents
+        // breath pauses from cutting the recording mid-sentence
+        endpointing: 500,
+      },
+      // Prevent user from interrupting the AI while it's speaking
+      interruptionsEnabled: false,
       firstMessage: "My Lords, the opposing counsel is present and ready to address the Court.",
     };
 
     try {
       if (assistantId && assistantId !== 'your-vapi-assistant-id-here') {
         console.log('[Vapi] Starting with assistant ID + overrides');
-        // 2nd arg is assistantOverrides per the Vapi.start() signature
         await vapi.start(assistantId, {
           model: inlineConfig.model,
+          transcriber: inlineConfig.transcriber,
+          interruptionsEnabled: false,
         });
       } else {
         console.log('[Vapi] Starting with inline config');

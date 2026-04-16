@@ -31,6 +31,10 @@ export default function CourtroomArena() {
   // Voice priming
   const [hasPrimedVoice, setHasPrimedVoice] = useState(false);
 
+  // Live transcript accumulator — chunks from Vapi build into one bubble
+  const [liveTranscript, setLiveTranscript] = useState('');
+  const liveTranscriptRef = useRef('');
+
   // Track whether AI is currently speaking so we can mute the user mic
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   // Ref to track mute state without triggering re-renders in the effect
@@ -118,12 +122,17 @@ export default function CourtroomArena() {
 
   // ─── Vapi callbacks ────────────────────────────────────────────────────────
 
-  // Assistant transcript → add to chat, clear AI typing state
+  // Assistant transcript chunks → accumulate into one live bubble
+  // Vapi fires this multiple times per response (one per sentence/chunk)
   const handleAssistantTranscript = useCallback((transcript) => {
     if (!transcript?.trim()) return;
-    dispatch({ type: 'AI_RESPOND', payload: transcript });
-    setIsAiSpeaking(false);
-  }, [dispatch]);
+    // Append chunk with a space separator
+    const updated = liveTranscriptRef.current
+      ? liveTranscriptRef.current + ' ' + transcript.trim()
+      : transcript.trim();
+    liveTranscriptRef.current = updated;
+    setLiveTranscript(updated);
+  }, []);
 
   // User voice transcript → submit as argument, score it
   const handleUserVoiceTranscript = useCallback(async (transcript) => {
@@ -161,9 +170,18 @@ export default function CourtroomArena() {
     onCallStart: () => {
       setVoiceError('');
       setIsAiSpeaking(false);
+      liveTranscriptRef.current = '';
+      setLiveTranscript('');
     },
     onCallEnd: () => {
       setIsAiSpeaking(false);
+      // Commit any remaining transcript
+      const remaining = liveTranscriptRef.current.trim();
+      if (remaining) {
+        dispatch({ type: 'AI_RESPOND', payload: remaining });
+        liveTranscriptRef.current = '';
+        setLiveTranscript('');
+      }
     },
     onError: (err) => {
       setVoiceError(err?.message || 'Voice connection failed.');
@@ -191,6 +209,14 @@ export default function CourtroomArena() {
       isMutedByAiRef.current = false;
       setIsAiSpeaking(false);
       vapi.toggleMute(); // unmute user when AI finishes
+
+      // Commit the accumulated live transcript to the chat as one bubble
+      const fullTranscript = liveTranscriptRef.current.trim();
+      if (fullTranscript) {
+        dispatch({ type: 'AI_RESPOND', payload: fullTranscript });
+        liveTranscriptRef.current = '';
+        setLiveTranscript('');
+      }
     }
   }, [vapi.isAssistantSpeaking, vapi.isCallActive]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -240,6 +266,7 @@ export default function CourtroomArena() {
         aiSide,
         currentRound: state.currentRound,
         totalRounds: state.totalRounds,
+        difficulty: state.difficulty || 'medium',
         caseContext: state.caseContext || roundContext,
         conversationHistory: history,
       });
@@ -305,6 +332,8 @@ export default function CourtroomArena() {
       setRoundContext('');
       setIsUserTurnActive(true);
       setIsAiSpeaking(false);
+      liveTranscriptRef.current = '';
+      setLiveTranscript('');
       setTurnTimerKey((k) => k + 1);
       dispatch({ type: 'NEXT_ROUND' });
     }
@@ -403,6 +432,7 @@ export default function CourtroomArena() {
             arguments={state.arguments}
             isAiTyping={state.isAiTyping}
             isAiSpeaking={isAiSpeaking}
+            liveTranscript={liveTranscript}
             currentRound={state.currentRound}
           />
 

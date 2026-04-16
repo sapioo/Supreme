@@ -1,10 +1,10 @@
 import './ArgumentBubble.css';
 
-export default function ArgumentBubble({ side, text, round, isTyping, isSpeaking }) {
+export default function ArgumentBubble({ side, text, round, isTyping, isSpeaking, isLive }) {
   const isUser = side === 'user';
 
   return (
-    <div className={`arg-bubble ${isUser ? 'arg-bubble--user' : 'arg-bubble--ai'} ${isTyping ? 'arg-bubble--typing' : ''}`}>
+    <div className={`arg-bubble ${isUser ? 'arg-bubble--user' : 'arg-bubble--ai'} ${isTyping ? 'arg-bubble--typing' : ''} ${isLive ? 'arg-bubble--live' : ''}`}>
       <div className="arg-bubble__header">
         <span className="arg-bubble__side-dot" />
         <span className="arg-bubble__side-label">
@@ -20,13 +20,14 @@ export default function ArgumentBubble({ side, text, round, isTyping, isSpeaking
               {isSpeaking ? 'Opposing counsel is speaking...' : 'Court Reporter transcribing...'}
             </span>
             <div className="arg-bubble__typing-dots">
-              <span />
-              <span />
-              <span />
+              <span /><span /><span />
             </div>
           </div>
         ) : (
-          <p className="arg-bubble__text">{text}</p>
+          <p className="arg-bubble__text">
+            {text}
+            {isLive && <span className="arg-bubble__cursor" />}
+          </p>
         )}
       </div>
 

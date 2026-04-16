@@ -1,9 +1,36 @@
 import { useState, useEffect } from 'react';
+import { useGameDispatch } from '../../context/GameContext';
 import './ChooseSide.css';
 
+const DIFFICULTIES = [
+  {
+    id: 'easy',
+    label: 'Junior Counsel',
+    desc: 'Brief arguments, easier to counter',
+    icon: '§',
+    tokens: 150,
+  },
+  {
+    id: 'medium',
+    label: 'Senior Advocate',
+    desc: 'Balanced, well-structured arguments',
+    icon: '⚖',
+    tokens: 300,
+  },
+  {
+    id: 'hard',
+    label: 'Senior Counsel',
+    desc: 'Exhaustive, citation-heavy arguments',
+    icon: '⚜',
+    tokens: 550,
+  },
+];
+
 export default function ChooseSide({ caseData, onSelectSide, onBack }) {
+  const dispatch = useGameDispatch();
   const [hoveredSide, setHoveredSide] = useState(null);
   const [selectedSide, setSelectedSide] = useState(null);
+  const [difficulty, setDifficulty] = useState('medium');
   const [isAnimatingIn, setIsAnimatingIn] = useState(false);
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
 
@@ -16,15 +43,11 @@ export default function ChooseSide({ caseData, onSelectSide, onBack }) {
 
   const handleSelect = (side) => {
     setSelectedSide(side);
-    
-    // Dramatic exit after selection
-    setTimeout(() => {
-      setIsAnimatingOut(true);
-    }, 600);
+    // Persist difficulty to global state before transitioning
+    dispatch({ type: 'SET_DIFFICULTY', payload: difficulty });
 
-    setTimeout(() => {
-      onSelectSide(side);
-    }, 1400);
+    setTimeout(() => setIsAnimatingOut(true), 600);
+    setTimeout(() => onSelectSide(side), 1400);
   };
 
   const handleBack = () => {
@@ -101,8 +124,13 @@ export default function ChooseSide({ caseData, onSelectSide, onBack }) {
         </div>
 
         <div className={`choose-side__vs ${hoveredSide ? 'choose-side__vs--active' : ''}`}>
-          <span className="choose-side__vs-text">VS</span>
-          <div className="choose-side__vs-ring" />
+          <div className="choose-side__vs-emblem">
+            <div className="choose-side__vs-ring choose-side__vs-ring--1" />
+            <div className="choose-side__vs-ring choose-side__vs-ring--2" />
+            <div className="choose-side__vs-ring choose-side__vs-ring--3" />
+            <div className="choose-side__vs-crack" />
+            <span className="choose-side__vs-text">VS</span>
+          </div>
         </div>
 
         <div
@@ -140,6 +168,25 @@ export default function ChooseSide({ caseData, onSelectSide, onBack }) {
           </div>
 
           <div className="choose-side__side-glow" />
+        </div>
+      </div>
+
+      {/* Difficulty selector */}
+      <div className="choose-side__difficulty">
+        <p className="choose-side__difficulty-label">Opposing Counsel Intensity</p>
+        <div className="choose-side__difficulty-options">
+          {DIFFICULTIES.map((d) => (
+            <button
+              key={d.id}
+              className={`choose-side__diff-btn choose-side__diff-btn--${d.id} ${difficulty === d.id ? 'choose-side__diff-btn--active' : ''}`}
+              onClick={() => !selectedSide && setDifficulty(d.id)}
+              disabled={!!selectedSide}
+            >
+              <span className="choose-side__diff-icon">{d.icon}</span>
+              <span className="choose-side__diff-name">{d.label}</span>
+              <span className="choose-side__diff-desc">{d.desc}</span>
+            </button>
+          ))}
         </div>
       </div>
 

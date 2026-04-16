@@ -298,27 +298,139 @@
 }
 
 .choose-side__vs {
-  width: 72px;
+  width: 90px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
+  flex-shrink: 0;
 }
 
-.choose-side__vs-text {
-  font-size: 2rem;
-  color: var(--blood-red-glow);
-  text-shadow: 0 0 20px rgba(164, 73, 63, 0.45);
-  animation: vsPulse 2.4s ease infinite;
-  z-index: 2;
+.choose-side__vs-emblem {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
+/* Concentric animated rings */
 .choose-side__vs-ring {
   position: absolute;
-  width: 58px;
-  height: 58px;
   border-radius: 999px;
-  border: 1px solid rgba(164, 73, 63, 0.35);
+  border: 1px solid rgba(164, 73, 63, 0.5);
+}
+
+.choose-side__vs-ring--1 {
+  width: 80px;
+  height: 80px;
+  animation: vsRingPulse 2.4s ease-out infinite;
+}
+
+.choose-side__vs-ring--2 {
+  width: 80px;
+  height: 80px;
+  border-color: rgba(233, 193, 118, 0.3);
+  animation: vsRingPulse 2.4s ease-out infinite 0.8s;
+}
+
+.choose-side__vs-ring--3 {
+  width: 80px;
+  height: 80px;
+  border-color: rgba(164, 73, 63, 0.2);
+  animation: vsRingPulse 2.4s ease-out infinite 1.6s;
+}
+
+@keyframes vsRingPulse {
+  0%   { transform: scale(1);   opacity: 0.8; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+/* Lightning crack line through the middle */
+.choose-side__vs-crack {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg,
+      transparent 0%,
+      transparent 44%,
+      rgba(233, 193, 118, 0.9) 48%,
+      rgba(255, 255, 255, 0.95) 50%,
+      rgba(233, 193, 118, 0.9) 52%,
+      transparent 56%,
+      transparent 100%
+    );
+  clip-path: polygon(
+    48% 0%, 52% 0%,
+    54% 42%, 58% 42%,
+    52% 50%, 56% 50%,
+    48% 100%, 44% 100%,
+    46% 58%, 42% 58%,
+    48% 50%, 44% 50%
+  );
+  animation: crackFlicker 3s ease-in-out infinite;
+  filter: blur(0.5px);
+}
+
+@keyframes crackFlicker {
+  0%, 100% { opacity: 0.7; }
+  45%       { opacity: 1;   filter: blur(0px) drop-shadow(0 0 4px rgba(233,193,118,0.9)); }
+  50%       { opacity: 0.4; }
+  55%       { opacity: 1;   }
+  80%       { opacity: 0.6; }
+}
+
+/* The VS text itself */
+.choose-side__vs-text {
+  position: relative;
+  z-index: 3;
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  background: linear-gradient(
+    160deg,
+    rgba(220, 180, 100, 1) 0%,
+    rgba(255, 230, 150, 1) 40%,
+    rgba(200, 140, 60, 1) 70%,
+    rgba(164, 73, 63, 1) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 12px rgba(233, 193, 118, 0.6));
+  animation: vsGlow 2.4s ease-in-out infinite;
+}
+
+@keyframes vsGlow {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(233, 193, 118, 0.5)); }
+  50%       { filter: drop-shadow(0 0 20px rgba(233, 193, 118, 0.9)) drop-shadow(0 0 40px rgba(164, 73, 63, 0.4)); }
+}
+
+/* On hover — intensify everything */
+.choose-side__vs--active .choose-side__vs-text {
+  animation: vsGlowActive 0.8s ease-in-out infinite;
+}
+
+@keyframes vsGlowActive {
+  0%, 100% { filter: drop-shadow(0 0 14px rgba(233, 193, 118, 0.8)); transform: scale(1.05); }
+  50%       { filter: drop-shadow(0 0 28px rgba(255, 220, 100, 1)) drop-shadow(0 0 50px rgba(164, 73, 63, 0.6)); transform: scale(1.12); }
+}
+
+.choose-side__vs--active .choose-side__vs-ring--1 {
+  animation-duration: 1.2s;
+  border-color: rgba(164, 73, 63, 0.8);
+}
+
+.choose-side__vs--active .choose-side__vs-ring--2 {
+  animation-duration: 1.2s;
+  border-color: rgba(233, 193, 118, 0.6);
+}
+
+.choose-side__vs--active .choose-side__vs-crack {
+  animation: crackFlicker 0.6s ease-in-out infinite;
 }
 
 .choose-side__footnote {
@@ -353,11 +465,129 @@
 
   .choose-side__vs {
     width: auto;
-    height: 54px;
+    height: 70px;
   }
 
   .choose-side__footnote {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+/* ── Difficulty Selector ─────────────────────────────────────────────────── */
+
+.choose-side__difficulty {
+  max-width: 70rem;
+  width: 100%;
+  margin: 0 auto;
+  animation: fadeInDown 0.6s ease 0.3s both;
+}
+
+.choose-side__difficulty-label {
+  font-family: var(--font-label);
+  font-size: 0.6rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-outline);
+  text-align: center;
+  margin-bottom: var(--space-3);
+}
+
+.choose-side__difficulty-options {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: center;
+}
+
+.choose-side__diff-btn {
+  flex: 1;
+  max-width: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(68, 71, 76, 0.7);
+  background: rgba(22, 28, 35, 0.6);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.choose-side__diff-btn:hover:not(:disabled) {
+  border-color: rgba(183, 200, 222, 0.35);
+  background: rgba(36, 42, 50, 0.8);
+  transform: translateY(-2px);
+}
+
+.choose-side__diff-icon {
+  font-size: 1.1rem;
+  color: var(--color-outline);
+  transition: color 0.2s;
+}
+
+.choose-side__diff-name {
+  font-family: var(--font-label);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant);
+  transition: color 0.2s;
+}
+
+.choose-side__diff-desc {
+  font-size: 0.72rem;
+  color: var(--color-outline);
+  font-style: italic;
+  text-align: center;
+}
+
+/* Easy — green tint */
+.choose-side__diff-btn--easy.choose-side__diff-btn--active {
+  border-color: rgba(172, 207, 186, 0.6);
+  background: rgba(172, 207, 186, 0.08);
+  box-shadow: 0 0 18px rgba(172, 207, 186, 0.12);
+}
+.choose-side__diff-btn--easy.choose-side__diff-btn--active .choose-side__diff-icon,
+.choose-side__diff-btn--easy.choose-side__diff-btn--active .choose-side__diff-name {
+  color: rgba(172, 207, 186, 0.9);
+}
+
+/* Medium — gold tint */
+.choose-side__diff-btn--medium.choose-side__diff-btn--active {
+  border-color: rgba(233, 193, 118, 0.6);
+  background: rgba(233, 193, 118, 0.08);
+  box-shadow: 0 0 18px rgba(233, 193, 118, 0.14);
+}
+.choose-side__diff-btn--medium.choose-side__diff-btn--active .choose-side__diff-icon,
+.choose-side__diff-btn--medium.choose-side__diff-btn--active .choose-side__diff-name {
+  color: var(--color-secondary);
+}
+
+/* Hard — red tint */
+.choose-side__diff-btn--hard.choose-side__diff-btn--active {
+  border-color: rgba(164, 73, 63, 0.65);
+  background: rgba(164, 73, 63, 0.1);
+  box-shadow: 0 0 18px rgba(164, 73, 63, 0.16);
+}
+.choose-side__diff-btn--hard.choose-side__diff-btn--active .choose-side__diff-icon,
+.choose-side__diff-btn--hard.choose-side__diff-btn--active .choose-side__diff-name {
+  color: rgba(220, 120, 110, 0.95);
+}
+
+@media (max-width: 600px) {
+  .choose-side__difficulty-options {
+    flex-direction: column;
+    align-items: center;
+  }
+  .choose-side__diff-btn {
+    max-width: 100%;
+    width: 100%;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: var(--space-3);
+  }
+  .choose-side__diff-desc {
+    text-align: left;
   }
 }

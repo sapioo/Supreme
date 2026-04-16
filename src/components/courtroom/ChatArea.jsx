@@ -2,25 +2,23 @@ import { useRef, useEffect } from 'react';
 import ArgumentBubble from './ArgumentBubble';
 import './ChatArea.css';
 
-export default function ChatArea({ arguments: args, isAiTyping, isAiSpeaking, currentRound }) {
+export default function ChatArea({ arguments: args, isAiTyping, isAiSpeaking, liveTranscript, currentRound }) {
   const chatEndRef = useRef(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [args, isAiTyping]);
+  }, [args, isAiTyping, liveTranscript]);
 
   return (
     <div className="chat-area" id="chat-area">
-      {/* Courtroom header */}
       <div className="chat-area__court-header">
         <div className="chat-area__court-line" />
         <span className="chat-area__court-text">Proceedings of the Court</span>
         <div className="chat-area__court-line" />
       </div>
 
-      {/* Messages */}
       <div className="chat-area__messages">
-        {args.length === 0 && !isAiTyping && (
+        {args.length === 0 && !isAiTyping && !liveTranscript && (
           <div className="chat-area__empty">
             <span className="chat-area__empty-icon">⚖</span>
             <p className="chat-area__empty-text">
@@ -38,23 +36,23 @@ export default function ChatArea({ arguments: args, isAiTyping, isAiSpeaking, cu
           />
         ))}
 
-        {isAiTyping && (
+        {/* Live accumulating transcript while AI speaks — single bubble that grows */}
+        {liveTranscript && (
           <ArgumentBubble
             side="ai"
-            text=""
+            text={liveTranscript}
             round={currentRound}
-            isTyping={true}
+            isLive={true}
           />
         )}
 
-        {/* AI speaking in voice mode — show waveform indicator in chat */}
-        {isAiSpeaking && !isAiTyping && (
+        {/* Typing indicator when waiting for text-mode AI response */}
+        {isAiTyping && !liveTranscript && (
           <ArgumentBubble
             side="ai"
             text=""
             round={currentRound}
             isTyping={true}
-            isSpeaking={true}
           />
         )}
 

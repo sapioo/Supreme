@@ -158,3 +158,23 @@
     font-size: var(--text-sm);
   }
 }
+
+/* Live transcript cursor */
+.arg-bubble--live {
+  border-color: rgba(233, 193, 118, 0.35);
+}
+
+.arg-bubble__cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: var(--color-secondary);
+  margin-left: 3px;
+  vertical-align: text-bottom;
+  animation: cursorBlink 0.8s step-end infinite;
+}
+
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}

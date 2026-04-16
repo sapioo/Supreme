@@ -10,6 +10,7 @@ const initialState = {
   currentPage: 'start',
   selectedCase: null,
   selectedSide: null,        // 'petitioner' | 'respondent'
+  difficulty: 'medium',      // 'easy' | 'medium' | 'hard'
   currentRound: 1,
   totalRounds: 5,
   arguments: [],              // { side: 'user'|'ai', text, round }
@@ -36,6 +37,12 @@ function gameReducer(state, action) {
         ...state,
         selectedSide: action.payload,
         currentPage: 'loading',
+      };
+
+    case 'SET_DIFFICULTY':
+      return {
+        ...state,
+        difficulty: action.payload,
       };
 
     case 'START_GAME':

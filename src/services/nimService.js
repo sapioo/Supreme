@@ -61,12 +61,20 @@ export async function checkNIMConnectivity() {
  * @param {string} [params.conversationHistory] - Prior arguments for context
  * @returns {Promise<string>} - The AI's argument text
  */
+// Maps difficulty to max_tokens for AI responses
+const DIFFICULTY_TOKENS = {
+  easy:   80,    // ~2-3 sentences
+  medium: 150,   // ~1 short paragraph
+  hard:   280,   // ~2 paragraphs with citations
+};
+
 export async function generateAIArgument({
   userArgument,
   caseData,
   aiSide,
   currentRound,
   totalRounds,
+  difficulty = 'medium',
   caseContext = '',
   conversationHistory = [],
 }) {
@@ -78,6 +86,15 @@ export async function generateAIArgument({
   const aiParty = caseData[aiSide];
   const userSide = aiSide === 'petitioner' ? 'respondent' : 'petitioner';
   const userParty = caseData[userSide];
+
+  const maxTokens = DIFFICULTY_TOKENS[difficulty] ?? DIFFICULTY_TOKENS.medium;
+
+  // Difficulty-specific instruction
+  const lengthInstruction = {
+    easy:   'Keep your response to 2-3 sentences only — be brief and direct.',
+    medium: 'Keep your response to 1 short paragraph only.',
+    hard:   'Give a focused 2-paragraph response with specific constitutional articles and one case citation.',
+  }[difficulty] ?? 'Keep your response to 1 short paragraph only.';
 
   // Build the system prompt
   let systemPrompt = `You are ${aiParty.name}, arguing as the ${aiSide} in the landmark Indian Supreme Court case "${caseData.shortName}" (${caseData.year}).
@@ -93,8 +110,8 @@ Relevant constitutional articles: ${caseData.articles.join(', ')}
 You are in a live courtroom debate simulation. The opposing counsel (${userParty.name}) has just made an argument. Respond as a skilled Indian Supreme Court advocate would.
 
 STRICT RULES:
-- Address the bench as "My Lords" or "Your Lordships" 
-- Keep your response to 2-3 focused paragraphs
+- Address the bench as "My Lords" or "Your Lordships"
+- ${lengthInstruction}
 - Be formal, authoritative, and precise
 - Directly counter the opponent's specific points
 - Cite constitutional articles and legal principles by name
@@ -135,7 +152,7 @@ STRICT RULES:
       messages,
       temperature: 0.7,
       top_p: 0.9,
-      max_tokens: 400,
+      max_tokens: maxTokens,
       stream: false,
     }),
     signal: AbortSignal.timeout(30000), // 30s timeout
