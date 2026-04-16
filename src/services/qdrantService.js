@@ -6,6 +6,10 @@
  * constitutional articles), and formats the results for AI prompt injection.
  */
 
+import { createLogger } from '../lib/logger';
+
+const logger = createLogger('QdrantService');
+
 // ─── Configuration (reads from Vite env in browser) ──────────────────────────
 
 function getConfig() {
@@ -155,7 +159,7 @@ async function searchQdrant({ vector, caseId, sectionTypes, limit = 5 }) {
  */
 export async function searchRelevantContext({ queryText, caseId, aiSide, limit = 5 }) {
   if (!isQdrantConfigured()) {
-    console.warn('[QdrantService] Not configured. Returning empty context.');
+    logger.warn('Retrieval unavailable: service not configured', { caseId, aiSide });
     return { results: [], formatted: '' };
   }
 
@@ -179,9 +183,17 @@ export async function searchRelevantContext({ queryText, caseId, aiSide, limit =
     // Step 4: Format for prompt injection
     const formatted = formatContextForPrompt(results);
 
+    logger.debug('Retrieved contextual chunks', {
+      caseId,
+      aiSide,
+      limit,
+      resultCount: results.length,
+      queryLength: queryText?.length || 0,
+    });
+
     return { results, formatted };
   } catch (err) {
-    console.error('[QdrantService] searchRelevantContext failed:', err.message);
+    logger.error('searchRelevantContext failed', err, { caseId, aiSide, limit });
     return { results: [], formatted: '' };
   }
 }
@@ -195,7 +207,7 @@ export async function searchRelevantContext({ queryText, caseId, aiSide, limit =
  */
 export async function getCaseOverview(caseId) {
   if (!isQdrantConfigured()) {
-    console.warn('[QdrantService] Not configured. Returning empty overview.');
+    logger.warn('Overview retrieval unavailable: service not configured', { caseId });
     return { results: [], formatted: '' };
   }
 
@@ -215,9 +227,14 @@ export async function getCaseOverview(caseId) {
     });
 
     const formatted = formatContextForPrompt(results);
+    logger.info('Loaded initial case overview context', {
+      caseId,
+      resultCount: results.length,
+      contextLength: formatted.length,
+    });
     return { results, formatted };
   } catch (err) {
-    console.error('[QdrantService] getCaseOverview failed:', err.message);
+    logger.error('getCaseOverview failed', err, { caseId });
     return { results: [], formatted: '' };
   }
 }

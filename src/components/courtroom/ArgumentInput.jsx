@@ -1,13 +1,16 @@
-import { useState, useRef, useEffect } from 'react';
-import './ArgumentInput.css';
+import { useState } from 'react';
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { Mic, Keyboard, Volume2, VolumeX, Loader2 } from "lucide-react";
+import { PromptBox } from "@/components/ui/chatgpt-prompt-input";
 
 export default function ArgumentInput({
   onSubmit,
   disabled,
+  roundComplete = false,
   currentRound,
   totalRounds,
   selectedSide,
-  // Voice props
   voiceEnabled = false,
   isVoiceMode = false,
   onToggleVoiceMode,
@@ -20,101 +23,96 @@ export default function ArgumentInput({
   onToggleMute,
 }) {
   const [text, setText] = useState('');
-  const textareaRef = useRef(null);
-  const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
-  const charCount = text.length;
-
-  useEffect(() => {
-    if (!disabled && !isVoiceMode && textareaRef.current) {
-      textareaRef.current.focus();
-    }
-  }, [disabled, isVoiceMode]);
 
   const handleSubmit = () => {
-    if (text.trim().length < 20 || disabled) return;
+    if (text.trim().length < 20 || disabled || roundComplete) return;
     onSubmit(text.trim());
     setText('');
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      handleSubmit();
-    }
   };
 
   const isLastRound = currentRound === totalRounds;
 
   return (
-    <div className={`arg-input ${disabled ? 'arg-input--disabled' : ''}`} id="argument-input">
-      {/* Input header */}
-      <div className="arg-input__header">
-        <span className="arg-input__side-indicator">
-          <span className="arg-input__side-dot" />
-          Arguing as {selectedSide === 'petitioner' ? 'Petitioner' : 'Respondent'}
-        </span>
+    <div className="border-t border-zinc-800 bg-[#171717] p-4" id="argument-input">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-zinc-300" />
+          <span className="text-[11px] uppercase tracking-[0.15em] text-zinc-400">
+            Arguing as {selectedSide === 'petitioner' ? 'Petitioner' : 'Respondent'}
+          </span>
+        </div>
 
-        <div className="arg-input__header-right">
-          {/* Voice/Text toggle */}
+        <div className="flex items-center gap-3">
           {voiceEnabled && (
-            <button
-              className={`arg-input__mode-toggle ${isVoiceMode ? 'arg-input__mode-toggle--voice' : ''}`}
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "h-7 border-zinc-700 px-2 text-[10px] uppercase tracking-wider",
+                isVoiceMode && "border-zinc-500 bg-zinc-800 text-zinc-100"
+              )}
               onClick={onToggleVoiceMode}
               id="voice-text-toggle"
-              title={isVoiceMode ? 'Switch to text input' : 'Switch to voice input'}
             >
-              <span className="arg-input__mode-icon">
-                {isVoiceMode ? '⌨' : '🎙'}
-              </span>
-              <span className="arg-input__mode-label">
-                {isVoiceMode ? 'Type Instead' : 'Use Voice'}
-              </span>
-            </button>
+              {isVoiceMode ? <Keyboard className="w-3 h-3 mr-1" /> : <Mic className="w-3 h-3 mr-1" />}
+              {isVoiceMode ? 'Type Instead' : 'Use Voice'}
+            </Button>
           )}
 
-          <span className="arg-input__hint">
-            {disabled
-              ? 'Awaiting opposing counsel...'
-              : isVoiceMode
-                ? isCallActive ? 'Speak your argument' : 'Press mic to begin'
-                : 'Ctrl + Enter to submit'}
+            <span className="text-[10px] text-zinc-500">
+              {roundComplete
+                ? 'Round complete - click Proceed to Round'
+                : disabled
+                ? 'Awaiting opposing counsel...'
+                : isVoiceMode
+                  ? isCallActive ? 'Speak your argument' : 'Press mic to begin'
+                  : 'Ctrl + Enter to submit'}
           </span>
         </div>
       </div>
 
       {/* Voice Mode UI */}
       {isVoiceMode ? (
-        <div className="arg-input__voice-area">
+        <div className="flex flex-col items-center justify-center py-8 gap-4">
           {/* Microphone button */}
           <button
-            className={`arg-input__mic-btn
-              ${isCallActive ? 'arg-input__mic-btn--active' : ''}
-              ${isUserSpeaking ? 'arg-input__mic-btn--speaking' : ''}
-              ${connectionStatus === 'connecting' ? 'arg-input__mic-btn--connecting' : ''}
-            `}
+            className={cn(
+              "relative w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300",
+              "bg-zinc-800 border-2 border-zinc-700 hover:border-zinc-600",
+              isCallActive && "border-amber-500 bg-amber-500/10 shadow-[0_0_30px_rgba(233,193,118,0.3)]",
+              isUserSpeaking && "scale-110",
+              connectionStatus === 'connecting' && "animate-pulse"
+            )}
             onClick={isCallActive ? onStopVoice : onStartVoice}
             disabled={disabled || connectionStatus === 'connecting'}
             id="mic-button"
           >
-            <div className="arg-input__mic-icon-wrap">
-              {/* Pulse rings when active */}
-              {isCallActive && (
-                <>
-                  <span className="arg-input__mic-ring arg-input__mic-ring--1" />
-                  <span className="arg-input__mic-ring arg-input__mic-ring--2" />
-                  <span className="arg-input__mic-ring arg-input__mic-ring--3" />
-                </>
+            {/* Pulse rings when active */}
+            {isCallActive && (
+              <>
+                <span className="absolute inset-0 rounded-full border border-amber-500/30 animate-ping" style={{ animationDuration: '2s' }} />
+                <span className="absolute inset-2 rounded-full border border-amber-500/20 animate-ping" style={{ animationDuration: '2s', animationDelay: '0.3s' }} />
+              </>
+            )}
+            <span className="relative z-10 text-2xl">
+              {connectionStatus === 'connecting' ? (
+                <Loader2 className="h-6 w-6 animate-spin text-zinc-200" />
+              ) : isCallActive ? (
+                <span className="block h-4 w-4 rounded-full bg-zinc-200" />
+              ) : (
+                <Mic className="h-6 w-6 text-zinc-400" />
               )}
-              <span className="arg-input__mic-icon">
-                {connectionStatus === 'connecting' ? '⟳' : isCallActive ? '⬤' : '🎙'}
-              </span>
-            </div>
+            </span>
           </button>
 
-          {/* Status text */}
-          <div className="arg-input__voice-status">
-            <span className={`arg-input__voice-status-dot ${isCallActive ? 'arg-input__voice-status-dot--live' : ''}`} />
-            <span className="arg-input__voice-status-text">
+          {/* Status */}
+          <div className="flex items-center gap-2">
+            <span className={cn(
+              "w-2 h-2 rounded-full",
+                isCallActive ? "bg-zinc-200 animate-pulse" : "bg-zinc-600"
+              )} />
+            <span className="text-xs text-zinc-400">
               {connectionStatus === 'connecting' && 'Connecting to courtroom...'}
               {connectionStatus === 'connected' && isUserSpeaking && 'Recording your argument...'}
               {connectionStatus === 'connected' && !isUserSpeaking && 'Listening — speak when ready'}
@@ -123,60 +121,36 @@ export default function ArgumentInput({
             </span>
           </div>
 
-          {/* Mute toggle during active call */}
+          {/* Mute toggle */}
           {isCallActive && (
-            <button
-              className={`arg-input__mute-btn ${isMuted ? 'arg-input__mute-btn--muted' : ''}`}
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "h-8 px-3",
+                isMuted ? "text-zinc-100" : "text-zinc-400"
+              )}
               onClick={onToggleMute}
               id="mute-toggle"
-              title={isMuted ? 'Unmute' : 'Mute'}
             >
-              {isMuted ? '🔇' : '🔊'}
-            </button>
+              {isMuted ? <VolumeX className="w-4 h-4 mr-1" /> : <Volume2 className="w-4 h-4 mr-1" />}
+              {isMuted ? 'Unmute' : 'Mute'}
+            </Button>
           )}
         </div>
       ) : (
-        /* Text Mode UI (existing) */
-        <>
-          <div className="arg-input__field-wrap">
-            <textarea
-              ref={textareaRef}
-              className="arg-input__field"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={
-                currentRound === 1
-                  ? "My Lords, I humbly submit before this Hon'ble Court that..."
-                  : "May it please the Court, in continuation of my submission..."
-              }
-              disabled={disabled}
-              rows={4}
-              id="argument-textarea"
-            />
-
-            <div className="arg-input__meta">
-              <span className={`arg-input__word-count ${wordCount < 10 ? 'arg-input__word-count--low' : ''}`}>
-                {charCount} / 1500 characters
-              </span>
-              {text.trim().length > 0 && text.trim().length < 20 && (
-                <span className="arg-input__warning">Minimum 20 characters required</span>
-              )}
-            </div>
-          </div>
-
-          <button
-            className={`arg-input__submit ${text.trim().length >= 20 && !disabled ? 'arg-input__submit--ready' : ''}`}
-            onClick={handleSubmit}
-            disabled={text.trim().length < 20 || disabled}
-            id="submit-argument-btn"
-          >
-            <span className="arg-input__submit-icon">🔨</span>
-            <span className="arg-input__submit-text">
-              {isLastRound ? 'Final Submission' : 'Submit Argument'}
-            </span>
-          </button>
-        </>
+        /* Text Mode UI */
+        <PromptBox
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+          onSubmit={handleSubmit}
+          disabled={disabled}
+          submitDisabled={disabled || roundComplete}
+          minLength={20}
+          submitLabel={isLastRound ? 'Final Submission' : 'Submit Argument'}
+          placeholder=""
+          id="argument-textarea"
+        />
       )}
     </div>
   );

@@ -1,152 +1,83 @@
-import { useState, useEffect } from 'react';
 import './ChooseSide.css';
 
-export default function ChooseSide({ caseData, onSelectSide, onBack }) {
-  const [hoveredSide, setHoveredSide] = useState(null);
-  const [selectedSide, setSelectedSide] = useState(null);
-  const [isAnimatingIn, setIsAnimatingIn] = useState(false);
-  const [isAnimatingOut, setIsAnimatingOut] = useState(false);
-
-  useEffect(() => {
-    // Trigger entrance animation
-    requestAnimationFrame(() => {
-      setIsAnimatingIn(true);
-    });
-  }, []);
-
-  const handleSelect = (side) => {
-    setSelectedSide(side);
-    
-    // Dramatic exit after selection
-    setTimeout(() => {
-      setIsAnimatingOut(true);
-    }, 600);
-
-    setTimeout(() => {
-      onSelectSide(side);
-    }, 1400);
-  };
-
-  const handleBack = () => {
-    setIsAnimatingOut(true);
-    setTimeout(() => onBack(), 500);
-  };
-
+export default function ChooseSide({ caseData, selectedSide, onSelectSide }) {
   if (!caseData) return null;
 
   const handleKeySelect = (event, side) => {
-    if (selectedSide) return;
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      handleSelect(side);
+      onSelectSide(side);
     }
   };
 
+  const sideCards = [
+    {
+      key: 'petitioner',
+      label: 'Petitioner',
+      party: caseData.petitioner,
+      previewLabel: 'Primary contention',
+      buttonLabel: 'Represent petitioner',
+      accentClass: 'choose-side__side--petitioner',
+    },
+    {
+      key: 'respondent',
+      label: 'Respondent',
+      party: caseData.respondent,
+      previewLabel: 'Defense strategy',
+      buttonLabel: 'Represent respondent',
+      accentClass: 'choose-side__side--respondent',
+    },
+  ];
+
   return (
-    <div className={`choose-side ${isAnimatingIn ? 'choose-side--in' : ''} ${isAnimatingOut ? 'choose-side--out' : ''}`} id="choose-side-modal">
-      <div className="choose-side__backdrop" />
-
-      <button className="choose-side__back" onClick={handleBack} id="back-to-cases-btn">
-        ← Back to Cases
-      </button>
-
+    <section className="choose-side" id="choose-side-step">
       <div className="choose-side__header">
-        <p className="choose-side__eyebrow">Active Litigation Proceeding</p>
-        <h2 className="choose-side__case-name">{caseData.shortName}</h2>
-        <p className="choose-side__case-year">{caseData.year} · {caseData.court}</p>
-        <div className="choose-side__header-tags">
-          <span>{caseData.tags[0]}</span>
-          <span>{caseData.court}</span>
+        <div className="choose-side__case-card">
+          <p className="choose-side__eyebrow">Selected case</p>
+          <h2 className="choose-side__case-name">{caseData.shortName}</h2>
+          <p className="choose-side__case-meta">{caseData.year} · {caseData.court}</p>
         </div>
+        <p className="choose-side__case-note">Choose one role. AI counsel will take the opposite side automatically.</p>
       </div>
 
-      <h3 className="choose-side__title">Choose Counsel</h3>
+      <div className="choose-side__arena" role="radiogroup" aria-label="Select your role">
+        {sideCards.map((side) => {
+          const isSelected = selectedSide === side.key;
 
-      <div className="choose-side__arena">
-        <div
-          className={`choose-side__side choose-side__side--petitioner
-            ${hoveredSide === 'petitioner' ? 'choose-side__side--active' : ''}
-            ${hoveredSide === 'respondent' ? 'choose-side__side--dimmed' : ''}
-            ${selectedSide === 'petitioner' ? 'choose-side__side--selected' : ''}
-            ${selectedSide === 'respondent' ? 'choose-side__side--rejected' : ''}
-          `}
-          onMouseEnter={() => !selectedSide && setHoveredSide('petitioner')}
-          onMouseLeave={() => !selectedSide && setHoveredSide(null)}
-          onClick={() => !selectedSide && handleSelect('petitioner')}
-          onKeyDown={(event) => handleKeySelect(event, 'petitioner')}
-          id="choose-petitioner"
-          role="button"
-          tabIndex={0}
-        >
-          <div className="choose-side__side-inner">
-            <div className="choose-side__side-label">The Petitioner</div>
-            <h4 className="choose-side__side-name">{caseData.petitioner.name}</h4>
-            <div className="choose-side__side-divider" />
-            <p className="choose-side__side-position">{caseData.petitioner.position}</p>
-            <p className="choose-side__side-description">{caseData.petitioner.description}</p>
+          return (
+            <article
+              key={side.key}
+              className={`choose-side__side ${side.accentClass} ${isSelected ? 'choose-side__side--selected' : ''}`}
+              onClick={() => onSelectSide(side.key)}
+              onKeyDown={(event) => handleKeySelect(event, side.key)}
+              role="radio"
+              aria-checked={isSelected}
+              tabIndex={0}
+              aria-label={`Choose ${side.label}`}
+            >
+              <div className="choose-side__side-head">
+                <p className="choose-side__side-label">{side.label}</p>
+                <span className={`choose-side__select-indicator ${isSelected ? 'choose-side__select-indicator--selected' : ''}`} aria-hidden="true" />
+              </div>
 
-            <div className="choose-side__side-preview">
-              <span className="choose-side__side-preview-label">Primary Contention</span>
-              <p className="choose-side__side-preview-text">
-                "{caseData.petitioner.keyArgs[0].substring(0, 120)}..."
-              </p>
-            </div>
+              <h3 className="choose-side__side-name">{side.party.name}</h3>
+              <p className="choose-side__side-position">{side.party.position}</p>
+              <p className="choose-side__side-description">{side.party.description}</p>
 
-            <button className="choose-side__side-btn" tabIndex={-1}>
-              Select Petitioner
-            </button>
-          </div>
+              <div className="choose-side__side-preview">
+                <span className="choose-side__side-preview-label">{side.previewLabel}</span>
+                <p className="choose-side__side-preview-text">
+                  "{side.party.keyArgs[0].substring(0, 130)}..."
+                </p>
+              </div>
 
-          <div className="choose-side__side-glow" />
-        </div>
-
-        <div className={`choose-side__vs ${hoveredSide ? 'choose-side__vs--active' : ''}`}>
-          <span className="choose-side__vs-text">VS</span>
-          <div className="choose-side__vs-ring" />
-        </div>
-
-        <div
-          className={`choose-side__side choose-side__side--respondent
-            ${hoveredSide === 'respondent' ? 'choose-side__side--active' : ''}
-            ${hoveredSide === 'petitioner' ? 'choose-side__side--dimmed' : ''}
-            ${selectedSide === 'respondent' ? 'choose-side__side--selected' : ''}
-            ${selectedSide === 'petitioner' ? 'choose-side__side--rejected' : ''}
-          `}
-          onMouseEnter={() => !selectedSide && setHoveredSide('respondent')}
-          onMouseLeave={() => !selectedSide && setHoveredSide(null)}
-          onClick={() => !selectedSide && handleSelect('respondent')}
-          onKeyDown={(event) => handleKeySelect(event, 'respondent')}
-          id="choose-respondent"
-          role="button"
-          tabIndex={0}
-        >
-          <div className="choose-side__side-inner">
-            <div className="choose-side__side-label">The Respondent</div>
-            <h4 className="choose-side__side-name">{caseData.respondent.name}</h4>
-            <div className="choose-side__side-divider" />
-            <p className="choose-side__side-position">{caseData.respondent.position}</p>
-            <p className="choose-side__side-description">{caseData.respondent.description}</p>
-
-            <div className="choose-side__side-preview">
-              <span className="choose-side__side-preview-label">Defense Strategy</span>
-              <p className="choose-side__side-preview-text">
-                "{caseData.respondent.keyArgs[0].substring(0, 120)}..."
-              </p>
-            </div>
-
-            <button className="choose-side__side-btn" tabIndex={-1}>
-              Select Respondent
-            </button>
-          </div>
-
-          <div className="choose-side__side-glow" />
-        </div>
+              <span className="choose-side__side-btn" aria-hidden="true">
+                {isSelected ? `Selected: ${side.label}` : side.buttonLabel}
+              </span>
+            </article>
+          );
+        })}
       </div>
-
-      <footer className="choose-side__footnote">
-        <span>Jurisprudential Integrity Verified</span>
-        <span>Case Ref: {caseData.id}</span>
-      </footer>
-    </div>
+    </section>
   );
 }

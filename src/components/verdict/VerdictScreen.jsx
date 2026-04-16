@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useGame, useGameDispatch } from '../../context/GameContext';
+import { createLogger } from '../../lib/logger';
 import ScalesTipping from './ScalesTipping';
 import Scorecard from './Scorecard';
 import CaseSummary from './CaseSummary';
 import './VerdictScreen.css';
+
+const logger = createLogger('VerdictScreen');
 
 export default function VerdictScreen() {
   const state = useGame();
@@ -17,6 +20,10 @@ export default function VerdictScreen() {
   const isUserWinner = verdict?.winner === 'user';
 
   useEffect(() => {
+    if (verdict) {
+      logger.info('Rendering verdict sequence', verdict);
+    }
+
     // Dramatic reveal sequence
     const t1 = setTimeout(() => setPhase('announce'), 1500);
     const t2 = setTimeout(() => setPhase('scales'), 3500);
@@ -26,10 +33,12 @@ export default function VerdictScreen() {
   }, []);
 
   const handlePlayAgain = () => {
+    logger.info('User requested replay of same case');
     dispatch({ type: 'RESET' });
   };
 
   const handleTryDifferent = () => {
+    logger.info('User requested reset for different case');
     dispatch({ type: 'RESET' });
   };
 

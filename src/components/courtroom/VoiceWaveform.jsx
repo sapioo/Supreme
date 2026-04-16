@@ -1,10 +1,6 @@
 import { useEffect, useRef } from 'react';
-import './VoiceWaveform.css';
+import { cn } from "@/lib/utils";
 
-/**
- * VoiceWaveform — Animated audio visualizer bars
- * Shows volume-reactive bars when the AI assistant is speaking
- */
 export default function VoiceWaveform({ volumeLevel, isActive, barCount = 24 }) {
   const barsRef = useRef([]);
   const phaseRef = useRef(0);
@@ -51,21 +47,32 @@ export default function VoiceWaveform({ volumeLevel, isActive, barCount = 24 }) 
   }, [isActive]);
 
   return (
-    <div className={`waveform ${isActive ? 'waveform--active' : ''}`} id="voice-waveform">
-      <div className="waveform__bars">
+    <div 
+      className={cn(
+        "flex flex-col items-center justify-center py-4 transition-opacity duration-300",
+        isActive ? "opacity-100" : "opacity-50"
+      )} 
+      id="voice-waveform"
+    >
+      <div className="flex items-end justify-center gap-[2px] h-14">
         {Array.from({ length: barCount }, (_, i) => (
           <div
             key={i}
             ref={el => barsRef.current[i] = el}
-            className="waveform__bar"
+            className={cn(
+              "w-1 rounded-full transition-colors duration-200",
+              isActive 
+                ? "bg-gradient-to-t from-amber-500/60 to-amber-400 shadow-[0_0_8px_rgba(233,193,118,0.4)]"
+                : "bg-zinc-700"
+            )}
             style={{
+              height: '4px',
               animationDelay: `${i * 0.05}s`,
-              '--bar-index': i,
             }}
           />
         ))}
       </div>
-      <span className="waveform__label">
+      <span className="mt-3 text-[10px] uppercase tracking-[0.2em] text-zinc-500">
         {isActive ? 'Opposing Counsel Speaking...' : 'Awaiting Response'}
       </span>
     </div>

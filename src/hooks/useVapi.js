@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import VapiModule from '@vapi-ai/web';
+import { createLogger } from '../lib/logger';
 // Handle CJS default export: the package exports { default: class Vapi }
 const Vapi = VapiModule.default || VapiModule;
+const logger = createLogger('useVapi');
 
 /**
  * useVapi — Custom hook for managing Vapi voice sessions in the courtroom
@@ -28,6 +30,7 @@ export default function useVapi({
   const [isMuted, setIsMuted] = useState(false);
   const [isUserSpeaking, setIsUserSpeaking] = useState(false);
   const [isAssistantSpeaking, setIsAssistantSpeaking] = useState(false);
+  const [assistantLiveTranscript, setAssistantLiveTranscript] = useState('');
   const [volumeLevel, setVolumeLevel] = useState(0);
   const [connectionStatus, setConnectionStatus] = useState('idle'); // idle | connecting | connected | error
 
@@ -42,19 +45,21 @@ export default function useVapi({
 
     const publicKey = import.meta.env.VITE_VAPI_PUBLIC_KEY;
     if (!publicKey || publicKey === 'your-vapi-public-key-here') {
-      console.warn('[Vapi] No valid VITE_VAPI_PUBLIC_KEY found. Voice features disabled.');
+      logger.warn('No valid VITE_VAPI_PUBLIC_KEY found. Voice features disabled.');
       return;
     }
 
     try {
       const vapi = new Vapi(publicKey);
       vapiRef.current = vapi;
+      logger.info('Vapi initialized successfully');
 
       // --- Event Handlers ---
 
       vapi.on('call-start', () => {
         setIsCallActive(true);
         setConnectionStatus('connected');
+        setAssistantLiveTranscript('');
         callbacksRef.current.onCallStart?.();
       });
 
@@ -62,6 +67,7 @@ export default function useVapi({
         setIsCallActive(false);
         setIsUserSpeaking(false);
         setIsAssistantSpeaking(false);
+        setAssistantLiveTranscript('');
         setVolumeLevel(0);
         setConnectionStatus('idle');
         callbacksRef.current.onCallEnd?.();
@@ -81,13 +87,19 @@ export default function useVapi({
       });
 
       vapi.on('error', (error) => {
-        console.error('[Vapi] Error:', error);
+        logger.error('Vapi emitted runtime error', error);
         setConnectionStatus('error');
         callbacksRef.current.onError?.(error);
       });
 
       vapi.on('message', (message) => {
         if (message.type === 'transcript') {
+          const transcriptText = typeof message.transcript === 'string' ? message.transcript.trim() : '';
+
+          if (message.role === 'assistant') {
+            setAssistantLiveTranscript(transcriptText);
+          }
+
           if (message.transcriptType === 'final') {
             if (message.role === 'user') {
               callbacksRef.current.onUserTranscript?.(message.transcript);
@@ -103,7 +115,7 @@ export default function useVapi({
         vapiRef.current = null;
       };
     } catch (err) {
-      console.error('[Vapi] Failed to initialize:', err);
+      logger.error('Failed to initialize Vapi', err);
       setConnectionStatus('error');
     }
   }, []);
@@ -116,7 +128,7 @@ export default function useVapi({
   const startCall = useCallback(async () => {
     const vapi = vapiRef.current;
     if (!vapi) {
-      console.warn('[Vapi] Instance not initialized. Check VITE_VAPI_PUBLIC_KEY.');
+      logger.warn('startCall ignored: instance not initialized');
       return;
     }
 
@@ -127,11 +139,11 @@ export default function useVapi({
     try {
       if (assistantId) {
         // Use pre-configured assistant from Vapi dashboard — no overrides
-        console.log('[Vapi] Starting call with assistant ID:', assistantId);
+        logger.info('Starting call with assistant id', { assistantId });
         await vapi.start(assistantId);
       } else {
         // Fallback: inline assistant configuration (no assistant ID)
-        console.log('[Vapi] Starting call with inline config');
+        logger.info('Starting call with inline assistant configuration');
         await vapi.start({
           model: {
             provider: 'openai',
@@ -156,8 +168,9 @@ export default function useVapi({
         });
       }
     } catch (err) {
-      console.error('[Vapi] Failed to start call:', err?.message || err);
-      console.error('[Vapi] Full error:', JSON.stringify(err, null, 2));
+      logger.error('Failed to start Vapi call', err, {
+        hasAssistantId: Boolean(assistantId),
+      });
       setConnectionStatus('error');
     }
   }, [systemPrompt]);
@@ -166,6 +179,7 @@ export default function useVapi({
    * Stop the active voice call
    */
   const stopCall = useCallback(() => {
+    logger.info('Stopping Vapi call');
     vapiRef.current?.stop();
     setIsCallActive(false);
     setConnectionStatus('idle');
@@ -179,6 +193,7 @@ export default function useVapi({
     const newMuted = !isMuted;
     vapiRef.current.setMuted(newMuted);
     setIsMuted(newMuted);
+    logger.debug('Toggled mute state', { muted: newMuted });
   }, [isMuted]);
 
   /**
@@ -214,6 +229,7 @@ export default function useVapi({
     isMuted,
     isUserSpeaking,
     isAssistantSpeaking,
+    assistantLiveTranscript,
     volumeLevel,
     connectionStatus,
     isAvailable,

@@ -1,67 +1,48 @@
-import heroImage from '../assets/hero.png';
 import './StartPage.css';
 
-const highlights = [
+const setupChecklist = [
   {
-    title: 'Landmark Cases',
-    text: 'Navigate constitutional cases that shaped modern legal doctrine.',
+    title: 'Pick a case',
+    text: 'Select one landmark dispute to load facts, context, and argument framing.',
   },
   {
-    title: 'AI-Driven Judgment',
-    text: 'Challenge an adaptive opposing counsel grounded in precedent logic.',
+    title: 'Pick your role',
+    text: 'Choose petitioner or respondent. AI counsel automatically takes the opposite side.',
   },
   {
-    title: 'Voice-First Advocacy',
-    text: 'Present oral arguments with live transcription and response flow.',
+    title: 'Enter courtroom',
+    text: 'Begin live rounds with structured speaking turns and automated scoring.',
   },
 ];
 
-export default function StartPage({ onStart }) {
+export default function StartPage() {
   return (
-    <main className="start-page" id="start-page">
-      <div className="start-page__bg" aria-hidden="true">
-        <img src={heroImage} alt="Courtroom ambience" className="start-page__bg-image" />
-      </div>
-      <div className="start-page__scrim" aria-hidden="true" />
-      <div className="start-page__ambient" aria-hidden="true" />
-
-      <span className="start-page__protocol">Case Protocol #882-Alpha // System Active</span>
-
-      <section className="start-page__panel texture-leather">
-        <p className="start-page__brand">CourtRoom AI</p>
-
-        <h1 className="start-page__title">Experience the Bench.</h1>
-        <p className="start-page__subtitle">
-          Witness the fusion of legal tradition and sovereign intelligence.
-          Your argument is the evidence.
+    <section className="start-step" id="start-step">
+      <header className="start-step__overview">
+        <p className="start-step__eyebrow">Guided onboarding</p>
+        <h2 className="start-step__heading">Set up your first courtroom session in under 2 minutes.</h2>
+        <p className="start-step__copy">
+          This flow asks for only two decisions. Everything else can be changed later from session
+          settings.
         </p>
+      </header>
 
-        <ul className="start-page__highlights" aria-label="experience-highlights">
-          {highlights.map((item, index) => (
-            <li key={item.title} className="start-page__highlight">
-              <span className="start-page__highlight-dot" aria-hidden="true" />
-              <div>
-                <h3 className="start-page__highlight-title">{item.title}</h3>
-                <p className="start-page__highlight-text">{item.text}</p>
-              </div>
-              <span className="start-page__highlight-index">0{index + 1}</span>
-            </li>
-          ))}
-        </ul>
+      <ul className="start-step__checklist" aria-label="wizard-checklist">
+        {setupChecklist.map((item, index) => (
+          <li key={item.title} className="start-step__item">
+            <span className="start-step__item-index">{index + 1}</span>
+            <div>
+              <h3 className="start-step__item-title">{item.title}</h3>
+              <p className="start-step__item-text">{item.text}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
 
-        <button
-          className="start-page__start-btn"
-          id="start-trial-btn"
-          type="button"
-          onClick={onStart}
-        >
-          <span className="start-page__start-btn-shine" aria-hidden="true" />
-          <span className="start-page__start-btn-text">Start Trial</span>
-          <span className="start-page__start-btn-icon" aria-hidden="true">→</span>
-        </button>
-
-        <p className="start-page__footnote">The Digital Gavel</p>
-      </section>
-    </main>
+      <div className="start-step__note" role="note">
+        <p>Data use: case metadata and selected role only during setup.</p>
+        <p>Your preferences are saved and can be edited any time.</p>
+      </div>
+    </section>
   );
 }

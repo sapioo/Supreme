@@ -16,17 +16,25 @@ export default function Scorecard({ roundScores }) {
     return () => clearTimeout(t);
   }, []);
 
-  // Calculate aggregate scores per category
+  if (!roundScores || roundScores.length === 0) {
+    return (
+      <div className="scorecard" id="scorecard">
+        <h3 className="scorecard__title">Detailed Scorecard</h3>
+        <p className="text-sm text-zinc-500">No score data available.</p>
+      </div>
+    );
+  }
+
   const aggregates = categories.map(cat => {
-    const userTotal = roundScores.reduce((sum, r) => sum + (r.userScore[cat.key] || 0), 0);
-    const aiTotal = roundScores.reduce((sum, r) => sum + (r.aiScore[cat.key] || 0), 0);
+    const userTotal = roundScores.reduce((sum, r) => sum + (r.userScore?.[cat.key] || 0), 0);
+    const aiTotal = roundScores.reduce((sum, r) => sum + (r.aiScore?.[cat.key] || 0), 0);
     const maxPossible = roundScores.length * 100;
     return {
       ...cat,
       userTotal,
       aiTotal,
-      userPercent: (userTotal / maxPossible) * 100,
-      aiPercent: (aiTotal / maxPossible) * 100,
+      userPercent: maxPossible > 0 ? (userTotal / maxPossible) * 100 : 0,
+      aiPercent: maxPossible > 0 ? (aiTotal / maxPossible) * 100 : 0,
       winner: userTotal >= aiTotal ? 'user' : 'ai',
     };
   });
@@ -77,8 +85,8 @@ export default function Scorecard({ roundScores }) {
         <h4 className="scorecard__rounds-title">Round-by-Round</h4>
         <div className="scorecard__rounds-grid">
           {roundScores.map((r, i) => {
-            const userTotal = Object.values(r.userScore).reduce((a, b) => a + b, 0);
-            const aiTotal = Object.values(r.aiScore).reduce((a, b) => a + b, 0);
+            const userTotal = Object.values(r.userScore || {}).reduce((a, b) => a + b, 0);
+            const aiTotal = Object.values(r.aiScore || {}).reduce((a, b) => a + b, 0);
             const winner = userTotal >= aiTotal ? 'user' : 'ai';
             return (
               <div key={i} className="scorecard__round-card" style={{ animationDelay: `${0.5 + i * 0.1}s` }}>

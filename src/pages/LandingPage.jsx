@@ -1,44 +1,72 @@
-import { useRef, useCallback } from 'react';
-import HeroSection from '../components/landing/HeroSection';
+import { useMemo, useState } from 'react';
 import CaseGrid from '../components/landing/CaseGrid';
+import cases from '../data/cases';
 import './LandingPage.css';
 
-export default function LandingPage({ onSelectCase }) {
-  const caseGridRef = useRef(null);
+export default function LandingPage({ onSelectCase, selectedCase }) {
+  const [query, setQuery] = useState('');
 
-  const handleExplore = useCallback(() => {
-    caseGridRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, []);
+  const filteredCases = useMemo(() => {
+    const trimmed = query.trim().toLowerCase();
+    if (!trimmed) return cases;
+
+    return cases.filter((item) => {
+      return (
+        item.shortName.toLowerCase().includes(trimmed)
+        || item.name.toLowerCase().includes(trimmed)
+        || item.tags.some((tag) => tag.toLowerCase().includes(trimmed))
+      );
+    });
+  }, [query]);
+
+  const selectionLabel = useMemo(() => {
+    if (!selectedCase) {
+      return 'No case selected yet';
+    }
+
+    return `${selectedCase.shortName} · ${selectedCase.year}`;
+  }, [selectedCase]);
 
   return (
-    <div className="landing-page" id="landing-page">
-      <HeroSection onExplore={handleExplore} />
-      <section className="landing-page__cases" ref={caseGridRef}>
-        <div className="landing-page__cases-head">
-          <h2 className="landing-page__cases-title">Historical Dossiers</h2>
-          <div className="landing-page__cases-meta">
-            <span>Filter by Jurisdiction</span>
-            <span>/</span>
-            <span>Sort by Precedent</span>
-          </div>
-        </div>
-        <CaseGrid onSelectCase={onSelectCase} />
+    <section className="landing-step" id="landing-step">
+      <div className="landing-step__head">
+        <h2 className="landing-step__title">Select a case to start with.</h2>
+        
+      </div>
 
-        <div className="landing-page__stats texture-paper" aria-label="platform-stats">
-          <article className="landing-page__stat">
-            <strong>1,240+</strong>
-            <span>Precedents Mapped</span>
-          </article>
-          <article className="landing-page__stat">
-            <strong>98.4%</strong>
-            <span>AI Accuracy</span>
-          </article>
-          <article className="landing-page__stat">
-            <strong>45k</strong>
-            <span>Oral Arguments</span>
-          </article>
+      <section className="landing-step__cases">
+        <div className="landing-step__cases-head">
+          <div className="landing-step__selection" aria-live="polite">
+            <p className="landing-step__selection-label">Selected case</p>
+            <div>
+              <h3 className="landing-step__selection-value">{selectionLabel}</h3>
+              <p className="landing-step__selection-copy">
+                {selectedCase ? selectedCase.summary : 'Choose one case to load facts and arguments.'}
+              </p>
+            </div>
+          </div>
+
+          <label className="landing-step__search" htmlFor="case-search">
+            <span className="landing-step__search-label">Search</span>
+            <input
+              id="case-search"
+              type="search"
+              placeholder="Search by case, court, or tag"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </label>
         </div>
+
+        {filteredCases.length === 0 ? (
+          <div className="landing-step__empty" role="status">
+            <p className="landing-step__empty-title">No cases found</p>
+            <p className="landing-step__empty-copy">Try a different keyword or clear the search.</p>
+          </div>
+        ) : (
+          <CaseGrid onSelectCase={onSelectCase} selectedCase={selectedCase} casesData={filteredCases} />
+        )}
       </section>
-    </div>
+    </section>
   );
 }
