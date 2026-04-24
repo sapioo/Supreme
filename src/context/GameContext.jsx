@@ -4,7 +4,7 @@ const GameContext = createContext(null);
 const GameDispatchContext = createContext(null);
 
 /**
- * Pages: start | landing | chooseSide | loading | courtroom | verdict
+ * Pages: start | drafting | landing | chooseSide | loading | courtroom | verdict
  */
 const initialState = {
   currentPage: 'start',

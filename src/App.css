@@ -19,3 +19,7 @@
 .app__page--start {
   min-height: 100vh;
 }
+
+.app__page--drafting {
+  min-height: 100vh;
+}

@@ -5,6 +5,7 @@ import GavelLoader from './components/common/GavelLoader';
 import CourtroomArena from './components/courtroom/CourtroomArena';
 import VerdictScreen from './components/verdict/VerdictScreen';
 import StartPage from './pages/StartPage';
+import DraftingPage from './pages/DraftingPage';
 import LandingPage from './pages/LandingPage';
 import './App.css';
 
@@ -12,8 +13,16 @@ export default function App() {
   const state = useGame();
   const dispatch = useGameDispatch();
 
-  const handleEnterExperience = useCallback(() => {
+  const handleSelectPractice = useCallback(() => {
     dispatch({ type: 'SET_PAGE', payload: 'landing' });
+  }, [dispatch]);
+
+  const handleSelectDrafting = useCallback(() => {
+    dispatch({ type: 'SET_PAGE', payload: 'drafting' });
+  }, [dispatch]);
+
+  const handleBackToStart = useCallback(() => {
+    dispatch({ type: 'SET_PAGE', payload: 'start' });
   }, [dispatch]);
 
   const handleSelectCase = useCallback((caseData) => {
@@ -37,14 +46,27 @@ export default function App() {
       {/* Page: Start */}
       {state.currentPage === 'start' && (
         <div className="app__page app__page--start">
-          <StartPage onStart={handleEnterExperience} />
+          <StartPage
+            onSelectPractice={handleSelectPractice}
+            onSelectDrafting={handleSelectDrafting}
+          />
+        </div>
+      )}
+
+      {/* Page: Drafting */}
+      {state.currentPage === 'drafting' && (
+        <div className="app__page app__page--drafting">
+          <DraftingPage onBack={handleBackToStart} />
         </div>
       )}
 
       {/* Page: Landing */}
       {state.currentPage === 'landing' && (
         <div className="app__page app__page--landing">
-          <LandingPage onSelectCase={handleSelectCase} />
+          <LandingPage
+            onSelectCase={handleSelectCase}
+            onBackHome={handleBackToStart}
+          />
         </div>
       )}
 
