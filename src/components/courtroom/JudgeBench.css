@@ -176,17 +176,49 @@
 .judge-bench__comment {
   border-radius: var(--radius-sm);
   background: rgba(96, 68, 3, 0.18);
-  padding: var(--space-3);
+  border: 1px solid rgba(233, 193, 118, 0.12);
+  padding: var(--space-3) var(--space-4);
   display: flex;
   align-items: flex-start;
-  gap: var(--space-2);
-  animation: fadeInUp 0.45s ease both;
+  gap: var(--space-3);
+  animation: fadeInUp 0.35s ease both;
+}
+
+.judge-bench__comment-gavel {
+  font-size: 1rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+  opacity: 0.7;
 }
 
 .judge-bench__comment-text {
   color: var(--color-on-surface);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-style: italic;
+  line-height: 1.6;
+}
+
+/* Blinking cursor during typewriter */
+.judge-bench__comment-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 0.9em;
+  background: var(--color-secondary);
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: cursorBlink 0.7s step-end infinite;
+}
+
+@keyframes cursorBlink {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
 }
 
 .judge-bench__waiting {

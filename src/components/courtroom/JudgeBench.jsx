@@ -8,6 +8,25 @@ const categories = [
   { key: 'constitutionalValidity', label: 'Constitutional Validity', icon: '☆' },
 ];
 
+// ── Typewriter hook ─────────────────────────────────────────────────────────
+function useTypewriter(text, active, speed = 28) {
+  const [displayed, setDisplayed] = useState('');
+
+  useEffect(() => {
+    if (!active || !text) { setDisplayed(''); return; }
+    setDisplayed('');
+    let i = 0;
+    const interval = setInterval(() => {
+      i += 1;
+      setDisplayed(text.slice(0, i));
+      if (i >= text.length) clearInterval(interval);
+    }, speed);
+    return () => clearInterval(interval);
+  }, [text, active, speed]);
+
+  return displayed;
+}
+
 export default function JudgeBench({ roundScores, isVisible }) {
   const [animatedRound, setAnimatedRound] = useState(0);
   const [commentRound, setCommentRound] = useState(0);
@@ -18,17 +37,18 @@ export default function JudgeBench({ roundScores, isVisible }) {
   const animateScores = shouldShow && animatedRound === latestRound;
   const showComment = shouldShow && commentRound === latestRound;
 
+  const commentText = latestScore?.judgeComment ?? '';
+  const typedComment = useTypewriter(commentText, showComment);
+
   useEffect(() => {
     if (shouldShow) {
       const t1 = setTimeout(() => setAnimatedRound(latestRound), 200);
-      const t2 = setTimeout(() => setCommentRound(latestRound), 800);
+      const t2 = setTimeout(() => setCommentRound(latestRound), 900);
       return () => { clearTimeout(t1); clearTimeout(t2); };
     }
-
     return undefined;
   }, [shouldShow, latestRound]);
 
-  // Aggregate totals
   const getTotalScore = (scoreObj) => {
     if (!scoreObj) return 0;
     return Object.values(scoreObj).reduce((a, b) => a + b, 0);
@@ -98,11 +118,17 @@ export default function JudgeBench({ roundScores, isVisible }) {
             </div>
           </div>
 
-          {/* Judge comment */}
-          {showComment && latestScore.judgeComment && (
+          {/* Judge comment — typewriter animation */}
+          {showComment && commentText && (
             <div className="judge-bench__comment">
-              <span className="judge-bench__comment-icon">🔨</span>
-              <p className="judge-bench__comment-text">"{latestScore.judgeComment}"</p>
+              <span className="judge-bench__comment-gavel">⚖</span>
+              <p className="judge-bench__comment-text">
+                &ldquo;{typedComment}
+                {typedComment.length < commentText.length && (
+                  <span className="judge-bench__comment-cursor" />
+                )}
+                {typedComment.length >= commentText.length && '\u201d'}
+              </p>
             </div>
           )}
         </>

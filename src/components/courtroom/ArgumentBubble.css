@@ -137,10 +137,14 @@
 }
 
 @keyframes typingDot {
-  0%, 60%, 100% {
+
+  0%,
+  60%,
+  100% {
     opacity: 0.3;
     transform: scale(0.8);
   }
+
   30% {
     opacity: 1;
     transform: scale(1.2);
@@ -175,6 +179,46 @@
 }
 
 @keyframes cursorBlink {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
+}
+
+/* ── Submitted stamp ─────────────────────────────────────────────────────── */
+
+.arg-bubble__stamp {
+  position: absolute;
+  bottom: 10px;
+  right: 12px;
+  font-family: var(--font-label);
+  font-size: 0.52rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-outline);
+  opacity: 0.28;
+  pointer-events: none;
+  user-select: none;
+  transform: rotate(-8deg);
+  border: 1px solid currentColor;
+  padding: 1px 5px;
+  border-radius: 2px;
+  animation: stampFadeIn 0.6s ease both;
+}
+
+@keyframes stampFadeIn {
+  from {
+    opacity: 0;
+    transform: rotate(-8deg) scale(1.15);
+  }
+
+  to {
+    opacity: 0.28;
+    transform: rotate(-8deg) scale(1);
+  }
 }

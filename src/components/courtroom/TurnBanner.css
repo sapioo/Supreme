@@ -1,0 +1,90 @@
+/* ── Turn Banner ─────────────────────────────────────────────────────────── */
+
+.turn-banner {
+    position: fixed;
+    top: 80px;
+    /* below the TopBar */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 120;
+    pointer-events: none;
+}
+
+.turn-banner--enter {
+    animation: turnBannerIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.turn-banner--exit {
+    animation: turnBannerOut 0.5s ease both;
+}
+
+@keyframes turnBannerIn {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-24px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0) scale(1);
+    }
+}
+
+@keyframes turnBannerOut {
+    from {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0) scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-16px) scale(0.96);
+    }
+}
+
+.turn-banner__inner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: rgba(14, 20, 27, 0.92);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(233, 193, 118, 0.28);
+    border-radius: 999px;
+    padding: 10px 22px 10px 16px;
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.45),
+        0 0 24px rgba(233, 193, 118, 0.08);
+    white-space: nowrap;
+}
+
+.turn-banner__icon {
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
+.turn-banner__text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.turn-banner__role {
+    font-family: var(--font-label);
+    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    color: var(--color-secondary);
+    font-weight: 700;
+}
+
+.turn-banner__round {
+    font-family: var(--font-label);
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    color: var(--color-outline);
+}
+
+.turn-banner__scales {
+    font-size: 0.9rem;
+    opacity: 0.6;
+    flex-shrink: 0;
+}

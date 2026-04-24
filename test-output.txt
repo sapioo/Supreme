@@ -1,0 +1,581 @@
+
+ RUN  v4.1.5 /home/sapio/code/supreme/Supreme
+
+stderr | src/components/courtroom/PreservationProperty.test.jsx > Preservation Property Tests - Existing Gameplay Functionality > Timer Countdown Preservation > should preserve timer countdown mechanism
+An update to TopBar inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ ❯ src/components/courtroom/CourtroomArena.test.jsx (5 tests | 5 failed) 218ms
+       × should display prominent "Time's Up!" notification when timer expires 110ms
+       × should display clear "Round Complete" status notification when both parties speak 33ms
+       × should display clear muted mic indicator when AI is speaking in voice mode 32ms
+       × should display prominent error notifications when voice errors occur 35ms
+       × should provide clear notifications for all state changes that affect user actions 3ms
+ ❯ src/components/courtroom/PreservationProperty.test.jsx (13 tests | 5 failed) 649ms
+       × should preserve timer display formatting across different values 11ms
+       × should preserve timer countdown mechanism 41ms
+       × should preserve round progression indicators 2ms
+       × should preserve different timer label states 2ms
+       × should preserve component data flow and state management 1ms
+ ❯ src/components/courtroom/SimplePreservation.test.jsx (9 tests | 3 failed) 687ms
+       × should preserve timer formatting across different values - property test 15ms
+       × should preserve round progression indicators - property test 2ms
+       × should preserve component behavior across different prop combinations - property test 1ms
+ ❯ src/components/courtroom/BugConditionExploration.test.jsx (6 tests | 6 failed) 44ms
+       × should fail on unfixed code - timer expiration without prominent notification 21ms
+       × should fail on unfixed code - round completion without clear status notification 2ms
+       × should fail on unfixed code - AI speaking without clear muted mic indicator 2ms
+       × should fail on unfixed code - voice errors without prominent notifications 2ms
+       × should fail on unfixed code - property-based test for state change notifications 2ms
+       × should document counterexamples that demonstrate the bug exists 9ms
+ ❯ src/test/voice-state-feedback.test.jsx (7 tests | 1 failed) 291ms
+     × should show connection status when call is active 46ms
+ ❯ verify-fix.test.jsx (0 test)
+ ❯ src/components/courtroom/BasicPreservation.test.jsx (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  verify-fix.test.jsx [ verify-fix.test.jsx ]
+Error: Failed to resolve import "../src/context/GameContext" from "verify-fix.test.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /home/sapio/code/supreme/Supreme/verify-fix.test.jsx:3:0
+  28 |  }));
+  29 |  const __vi_import_0__ = await import("@testing-library/react");
+  30 |  const __vi_import_1__ = await import("../src/context/GameContext");
+     |                                       ^
+  31 |  const __vi_import_2__ = await import("../src/components/courtroom/CourtroomArena");
+  32 |  const __vi_import_3__ = await import("react/jsx-dev-runtime");
+ ❯ TransformPluginContext._formatLog node_modules/vite/dist/node/chunks/node.js:30354:39
+ ❯ TransformPluginContext.error node_modules/vite/dist/node/chunks/node.js:30351:14
+ ❯ normalizeUrl node_modules/vite/dist/node/chunks/node.js:27633:18
+ ❯ node_modules/vite/dist/node/chunks/node.js:27696:30
+ ❯ TransformPluginContext.transform node_modules/vite/dist/node/chunks/node.js:27664:4
+ ❯ EnvironmentPluginContainer.transform node_modules/vite/dist/node/chunks/node.js:30143:14
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/node.js:24468:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/22]⎯
+
+ FAIL  src/components/courtroom/BasicPreservation.test.jsx [ src/components/courtroom/BasicPreservation.test.jsx ]
+SyntaxError: Unexpected eval or arguments in strict mode
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/22]⎯
+
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 20 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/test/voice-state-feedback.test.jsx > Enhanced Voice State Feedback > should show connection status when call is active
+TestingLibraryElementError: Found multiple elements with the text: Voice session active
+
+Here are the matching elements:
+
+Ignored nodes: comments, script, style
+[36m<span[39m
+  [33mclass[39m=[32m"arg-input__hint"[39m
+[36m>[39m
+  [0mVoice session active[0m
+[36m</span>[39m
+
+Ignored nodes: comments, script, style
+[36m<span[39m
+  [33mclass[39m=[32m"arg-input__connection-text"[39m
+[36m>[39m
+  [0mVoice session active[0m
+[36m</span>[39m
+
+(If this is intentional, then use the `*AllBy*` variant of the query (like `queryAllByText`, `getAllByText`, or `findAllByText`)).
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"arg-input "[39m
+      [33mid[39m=[32m"argument-input"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"arg-input__header"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"arg-input__side-indicator"[39m
+        [36m>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"arg-input__side-dot"[39m
+          [36m/>[39m
+          [0mArguing as [0m
+          [0mPetitioner[0m
+        [36m</span>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"arg-input__header-right"[39m
+        [36m>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"arg-input__mode-toggle "[39m
+            [33mid[39m=[32m"voice-text-toggle"[39m
+            [33mtitle[39m=[32m"Switch to text input"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"arg-input__mode-icon"[39m
+            [36m>[39m
+              [0m⌨[0m
+            [36m</span>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"arg-input__mode-label"[39m
+            [36m>[39m
+              [0mType Instead[0m
+            [36m</span>[39m
+          [36m</button>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"arg-input__hint"[39m
+          [36m>[39m
+            [0mVoice session active[0m
+          [36m</span>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"arg-input__voice-area"[39m
+      [36m>[39m
+        [36m<button[39m
+          [33mclass[39m=[32m"arg-input__mic-btn arg-input__mic-btn--active    "[39m
+          [33mid[39m=[32m"mic-button"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"arg-input__mic-icon-wrap"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"arg-input__mic-icon"[39m
+            [36m>[39m
+              [0m⬤[0m
+            [36m</span>[39m
+          [36m</div>[39m
+        [36m</button>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"arg-input__voice-status"[39m
+        [36m>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"arg-input__voice-status-dot arg-input__voice-status-dot--live   "[39m
+          [36m/>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"arg-input__voice-status-text  "[39m
+          [36m>[39m
+            [0mListening — speak when ready[0m
+          [36m</span>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"arg-input__connection-status"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"arg-input__connection-indicator"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"arg-input__connection-dot"[39m
+            [36m/>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"arg-input__connection-text"[39m
+            [36m>[39m
+              [0mVoice session active[0m
+            [36m</span>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+        [36m<button[39m
+          [33mclass[39m=[32m"arg-input__mute-btn "[39m
+          [33mid[39m=[32m"mute-toggle"[39m
+          [33mtitle[39m=[32m"Mute microphone"[39m
+        [36m>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"arg-input__mute-btn-icon"[39m
+          [36m>[39m
+            [0m🔊[0m
+          [36m</span>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"arg-input__mute-btn-text"[39m
+          [36m>[39m
+            [0mMute[0m
+          [36m</span>[39m
+        [36m</button>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ getElementError node_modules/@testing-library/dom/dist/query-helpers.js:20:35
+ ❯ getMultipleElementsFoundError node_modules/@testing-library/dom/dist/query-helpers.js:23:10
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:55:13
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/test/voice-state-feedback.test.jsx:66:19
+     64|
+     65|     // Check for connection status indicator
+     66|     expect(screen.getByText('Voice session active')).toBeInTheDocument…
+       |                   ^
+     67|   });
+     68|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/22]⎯
+
+ FAIL  src/components/courtroom/BugConditionExploration.test.jsx > Bug Condition Exploration Test - Timer and Round State Change Notifications > Property 1: Bug Condition - Clear State Change Notifications > should fail on unfixed code - timer expiration without prominent notification
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/components/courtroom/BugConditionExploration.test.jsx:41:56
+     39|
+     40|       // This assertion will FAIL on unfixed code, proving the bug exi…
+     41|       expect(currentBehavior.hasProminentNotification).toBe(true);
+       |                                                        ^
+     42|       expect(currentBehavior.userUnderstandsWhatHappened).toBe(true);
+     43|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/22]⎯
+
+ FAIL  src/components/courtroom/BugConditionExploration.test.jsx > Bug Condition Exploration Test - Timer and Round State Change Notifications > Property 1: Bug Condition - Clear State Change Notifications > should fail on unfixed code - round completion without clear status notification
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/components/courtroom/BugConditionExploration.test.jsx:57:59
+     55|
+     56|       // This assertion will FAIL on unfixed code, proving the bug exi…
+     57|       expect(currentBehavior.hasClearRoundCompleteStatus).toBe(true);
+       |                                                           ^
+     58|       expect(currentBehavior.userUnderstandsRoundIsComplete).toBe(true…
+     59|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/22]⎯
+
+ FAIL  src/components/courtroom/BugConditionExploration.test.jsx > Bug Condition Exploration Test - Timer and Round State Change Notifications > Property 1: Bug Condition - Clear State Change Notifications > should fail on unfixed code - AI speaking without clear muted mic indicator
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/components/courtroom/BugConditionExploration.test.jsx:73:54
+     71|
+     72|       // This assertion will FAIL on unfixed code, proving the bug exi…
+     73|       expect(currentBehavior.hasClearMutedIndicator).toBe(true);
+       |                                                      ^
+     74|       expect(currentBehavior.userUnderstandsMicIsMuted).toBe(true);
+     75|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/22]⎯
+
+ FAIL  src/components/courtroom/BugConditionExploration.test.jsx > Bug Condition Exploration Test - Timer and Round State Change Notifications > Property 1: Bug Condition - Clear State Change Notifications > should fail on unfixed code - voice errors without prominent notifications
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/components/courtroom/BugConditionExploration.test.jsx:89:56
+     87|
+     88|       // This assertion will FAIL on unfixed code, proving the bug exi…
+     89|       expect(currentBehavior.hasProminentErrorDisplay).toBe(true);
+       |                                                        ^
+     90|       expect(currentBehavior.userUnderstandsError).toBe(true);
+     91|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/22]⎯
+
+ FAIL  src/components/courtroom/BugConditionExploration.test.jsx > Bug Condition Exploration Test - Timer and Round State Change Notifications > Property 1: Bug Condition - Clear State Change Notifications > should fail on unfixed code - property-based test for state change notifications
+TypeError: Cannot read properties of undefined (reading 'assert')
+ ❯ src/components/courtroom/BugConditionExploration.test.jsx:98:10
+     96|      */
+     97|     it('should fail on unfixed code - property-based test for state ch…
+     98|       fc.assert(
+       |          ^
+     99|         fc.property(
+    100|           fc.record({
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/22]⎯
+
+ FAIL  src/components/courtroom/BugConditionExploration.test.jsx > Bug Condition Exploration Test - Timer and Round State Change Notifications > Property 1: Bug Condition - Clear State Change Notifications > should document counterexamples that demonstrate the bug exists
+AssertionError: expected 'Timer label changes to "Time\'s Up" b…' to be 'Prominent "Time\'s Up!" notification …' // Object.is equality
+
+Expected: "Prominent "Time's Up!" notification with explanation"
+Received: "Timer label changes to "Time's Up" but no prominent notification"
+
+ ❯ src/components/courtroom/BugConditionExploration.test.jsx:160:42
+    158|       bugScenarios.forEach(scenario => {
+    159|         // This assertion will FAIL for each scenario, documenting the…
+    160|         expect(scenario.currentBehavior).toBe(scenario.expectedBehavio…
+       |                                          ^
+    161|       });
+    162|     });
+ ❯ src/components/courtroom/BugConditionExploration.test.jsx:158:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/22]⎯
+
+ FAIL  src/components/courtroom/CourtroomArena.test.jsx > Bug Condition Exploration Test - Timer and Round State Change Notifications > Property 1: Bug Condition - Clear State Change Notifications > should display prominent "Time's Up!" notification when timer expires
+ FAIL  src/components/courtroom/CourtroomArena.test.jsx > Bug Condition Exploration Test - Timer and Round State Change Notifications > Property 1: Bug Condition - Clear State Change Notifications > should display clear "Round Complete" status notification when both parties speak
+ FAIL  src/components/courtroom/CourtroomArena.test.jsx > Bug Condition Exploration Test - Timer and Round State Change Notifications > Property 1: Bug Condition - Clear State Change Notifications > should display clear muted mic indicator when AI is speaking in voice mode
+ FAIL  src/components/courtroom/CourtroomArena.test.jsx > Bug Condition Exploration Test - Timer and Round State Change Notifications > Property 1: Bug Condition - Clear State Change Notifications > should display prominent error notifications when voice errors occur
+TypeError: chatEndRef.current?.scrollIntoView is not a function
+ ❯ src/components/courtroom/ChatArea.jsx:9:25
+      7|
+      8|   useEffect(() => {
+      9|     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+       |                         ^
+     10|   }, [args, isAiTyping, liveTranscript]);
+     11|
+ ❯ Object.react_stack_bottom_frame node_modules/react-dom/cjs/react-dom-client.development.js:25989:20
+ ❯ runWithFiberInDEV node_modules/react-dom/cjs/react-dom-client.development.js:874:13
+ ❯ commitHookEffectListMount node_modules/react-dom/cjs/react-dom-client.development.js:13249:29
+ ❯ commitHookPassiveMountEffects node_modules/react-dom/cjs/react-dom-client.development.js:13336:11
+ ❯ commitPassiveMountOnFiber node_modules/react-dom/cjs/react-dom-client.development.js:15484:13
+ ❯ recursivelyTraversePassiveMountEffects node_modules/react-dom/cjs/react-dom-client.development.js:15439:11
+ ❯ commitPassiveMountOnFiber node_modules/react-dom/cjs/react-dom-client.development.js:15718:11
+ ❯ recursivelyTraversePassiveMountEffects node_modules/react-dom/cjs/react-dom-client.development.js:15439:11
+ ❯ commitPassiveMountOnFiber node_modules/react-dom/cjs/react-dom-client.development.js:15718:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/22]⎯
+
+ FAIL  src/components/courtroom/CourtroomArena.test.jsx > Bug Condition Exploration Test - Timer and Round State Change Notifications > Property 1: Bug Condition - Clear State Change Notifications > should provide clear notifications for all state changes that affect user actions
+TypeError: Cannot read properties of undefined (reading 'assert')
+ ❯ src/components/courtroom/CourtroomArena.test.jsx:240:10
+    238|      */
+    239|     it('should provide clear notifications for all state changes that …
+    240|       fc.assert(
+       |          ^
+    241|         fc.property(
+    242|           fc.record({
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/22]⎯
+
+ FAIL  src/components/courtroom/PreservationProperty.test.jsx > Preservation Property Tests - Existing Gameplay Functionality > Timer Countdown Preservation > should preserve timer display formatting across different values
+TypeError: Cannot read properties of undefined (reading 'assert')
+ ❯ src/components/courtroom/PreservationProperty.test.jsx:62:10
+     60|
+     61|     it('should preserve timer display formatting across different valu…
+     62|       fc.assert(
+       |          ^
+     63|         fc.property(
+     64|           fc.integer({ min: 0, max: 300 }), // Timer values from 0 to …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/22]⎯
+
+ FAIL  src/components/courtroom/PreservationProperty.test.jsx > Preservation Property Tests - Existing Gameplay Functionality > Timer Countdown Preservation > should preserve timer countdown mechanism
+TestingLibraryElementError: Unable to find an element with the text: 0:04. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<header[39m
+      [33mclass[39m=[32m"topbar"[39m
+      [33mid[39m=[32m"courtroom-topbar"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"topbar__case"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"topbar__badge"[39m
+        [36m>[39m
+          [0mSC[0m
+        [36m</span>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"topbar__case-info"[39m
+        [36m>[39m
+          [36m<h2[39m
+            [33mclass[39m=[32m"topbar__case-name"[39m
+          [36m>[39m
+            [0mTest Case[0m
+          [36m</h2>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"topbar__round"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"topbar__round-label"[39m
+        [36m>[39m
+          [0mRound[0m
+        [36m</span>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"topbar__round-display"[39m
+        [36m>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"topbar__round-current"[39m
+          [36m>[39m
+            [0m1[0m
+          [36m</span>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"topbar__round-sep"[39m
+          [36m>[39m
+            [0mof[0m
+          [36m</span>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"topbar__round-total"[39m
+          [36m>[39m
+            [0m5[0m
+          [36m</span>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"topbar__round-dots"[39m
+        [36m>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"topbar__round-dot topbar__round-dot--done topbar__round-dot--active"[39m
+          [36m/>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"topbar__round-dot  "[39m
+          [36m/>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"topbar__round-dot  "[39m
+          [36m/>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"topbar__round-dot  "[39m
+          [36m/>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"topbar__round-dot  "[39m
+          [36m/>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"topbar__right"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"topbar__timer topbar__timer--urgent"[39m
+        [36m>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"topbar__timer-label"[39m
+          [36m>[39m
+            [0mYour Turn[0m
+          [36m</span>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"topbar__timer-value"[39m
+          [36m>[39m
+            [0m0:05[0m
+          [36m</span>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"topbar__timer-bar"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"topbar__timer-fill"[39m
+              [33mstyle[39m=[32m"width: 100%;"[39m
+            [36m/>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+        [36m<button[39m
+          [33mclass[39m=[32m"topbar__end-btn"[39m
+          [33mid[39m=[32m"end-case-btn"[39m
+          [33mtitle[39m=[32m"End case and receive verdict based on arguments so far"[39m
+        [36m>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"topbar__end-icon"[39m
+          [36m>[39m
+            [0m⚖[0m
+          [36m</span>[39m
+          [36m<span>[39m
+            [0mEnd[0m
+          [36m</span>[39m
+        [36m</button>[39m
+      [36m</div>[39m
+    [36m</header>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/components/courtroom/PreservationProperty.test.jsx:144:21
+    142|       // Advance time and verify countdown works (baseline behavior)
+    143|       vi.advanceTimersByTime(1000);
+    144|       expect(screen.getByText('0:04')).toBeInTheDocument();
+       |                     ^
+    145|
+    146|       // Advance to timer end
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/22]⎯
+
+ FAIL  src/components/courtroom/PreservationProperty.test.jsx > Preservation Property Tests - Existing Gameplay Functionality > Round Scoring Preservation > should preserve round progression indicators
+TypeError: Cannot read properties of undefined (reading 'assert')
+ ❯ src/components/courtroom/PreservationProperty.test.jsx:214:10
+    212|
+    213|     it('should preserve round progression indicators', () => {
+    214|       fc.assert(
+       |          ^
+    215|         fc.property(
+    216|           fc.integer({ min: 1, max: 5 }), // Current round
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/22]⎯
+
+ FAIL  src/components/courtroom/PreservationProperty.test.jsx > Preservation Property Tests - Existing Gameplay Functionality > Timer Label States Preservation > should preserve different timer label states
+TypeError: Cannot read properties of undefined (reading 'assert')
+ ❯ src/components/courtroom/PreservationProperty.test.jsx:288:10
+    286|   describe('Timer Label States Preservation', () => {
+    287|     it('should preserve different timer label states', () => {
+    288|       fc.assert(
+       |          ^
+    289|         fc.property(
+    290|           fc.constantFrom('Your Turn', 'Turn Complete', "Time's Up", '…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/22]⎯
+
+ FAIL  src/components/courtroom/PreservationProperty.test.jsx > Preservation Property Tests - Existing Gameplay Functionality > Overall TopBar Functionality Preservation > should preserve component data flow and state management
+TypeError: Cannot read properties of undefined (reading 'assert')
+ ❯ src/components/courtroom/PreservationProperty.test.jsx:409:10
+    407|     it('should preserve component data flow and state management', () …
+    408|       // Test that component handles different prop combinations corre…
+    409|       fc.assert(
+       |          ^
+    410|         fc.property(
+    411|           fc.record({
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/22]⎯
+
+ FAIL  src/components/courtroom/SimplePreservation.test.jsx > Simple Preservation Property Tests > Timer Countdown Preservation > should preserve timer formatting across different values - property test
+TypeError: Cannot read properties of undefined (reading 'assert')
+ ❯ src/components/courtroom/SimplePreservation.test.jsx:48:10
+     46|
+     47|     it('should preserve timer formatting across different values - pro…
+     48|       fc.assert(
+       |          ^
+     49|         fc.property(
+     50|           fc.integer({ min: 0, max: 300 }), // Timer values from 0 to …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/22]⎯
+
+ FAIL  src/components/courtroom/SimplePreservation.test.jsx > Simple Preservation Property Tests > Round Display Preservation > should preserve round progression indicators - property test
+TypeError: Cannot read properties of undefined (reading 'assert')
+ ❯ src/components/courtroom/SimplePreservation.test.jsx:116:10
+    114|
+    115|     it('should preserve round progression indicators - property test',…
+    116|       fc.assert(
+       |          ^
+    117|         fc.property(
+    118|           fc.integer({ min: 1, max: 5 }), // Current round
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/22]⎯
+
+ FAIL  src/components/courtroom/SimplePreservation.test.jsx > Simple Preservation Property Tests > Overall TopBar Functionality Preservation > should preserve component behavior across different prop combinations - property test
+TypeError: Cannot read properties of undefined (reading 'assert')
+ ❯ src/components/courtroom/SimplePreservation.test.jsx:294:10
+    292|     it('should preserve component behavior across different prop combi…
+    293|       // Property-based test to verify preservation across many scenar…
+    294|       fc.assert(
+       |          ^
+    295|         fc.property(
+    296|           fc.record({
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/22]⎯
+
+
+ Test Files  7 failed | 4 passed (11)
+      Tests  20 failed | 28 passed (48)
+   Start at  01:23:34
+   Duration  10.38s (transform 546ms, setup 1.60s, import 1.72s, tests 2.63s, environment 17.83s)
+

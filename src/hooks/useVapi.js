@@ -23,13 +23,13 @@ export default function useVapi({
 }) {
   const vapiRef = useRef(null);
 
-  const [isCallActive, setIsCallActive]               = useState(false);
-  const [isMuted, setIsMuted]                         = useState(false);
-  const [isUserSpeaking, setIsUserSpeaking]           = useState(false);
+  const [isCallActive, setIsCallActive] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isUserSpeaking, setIsUserSpeaking] = useState(false);
   const [isAssistantSpeaking, setIsAssistantSpeaking] = useState(false);
-  const [volumeLevel, setVolumeLevel]                 = useState(0);
-  const [connectionStatus, setConnectionStatus]       = useState('idle');
-  const [lastError, setLastError]                     = useState('');
+  const [volumeLevel, setVolumeLevel] = useState(0);
+  const [connectionStatus, setConnectionStatus] = useState('idle');
+  const [lastError, setLastError] = useState('');
 
   // Keep latest callbacks in a ref so event handlers never go stale
   const cbRef = useRef({});
@@ -95,7 +95,7 @@ export default function useVapi({
       });
 
       vapi.on('speech-start', () => setIsUserSpeaking(true));
-      vapi.on('speech-end',   () => setIsUserSpeaking(false));
+      vapi.on('speech-end', () => setIsUserSpeaking(false));
 
       vapi.on('volume-level', (vol) => {
         setVolumeLevel(vol);
@@ -119,19 +119,29 @@ export default function useVapi({
 
       vapi.on('error', (err) => {
         console.error('[Vapi] Error:', err);
-        const msg = err?.error?.message || err?.message || 'Voice connection failed.';
+        // Safely extract a string message from any error shape Vapi may send
+        const msg =
+          (typeof err?.error?.message === 'string' ? err.error.message : null) ||
+          (typeof err?.message === 'string' ? err.message : null) ||
+          'Voice connection failed.';
         setConnectionStatus('error');
         setLastError(msg);
         setIsCallActive(false);
-        cbRef.current.onError?.(err);
+        // Pass the normalised string message (not the raw object) to the callback
+        cbRef.current.onError?.({ message: msg });
       });
 
       vapi.on('message', (msg) => {
         if (msg.type !== 'transcript' || msg.transcriptType !== 'final') return;
+        // Coerce transcript to string — Vapi SDK can sometimes pass non-string values
+        const text = typeof msg.transcript === 'string'
+          ? msg.transcript
+          : String(msg.transcript ?? '');
+        if (!text) return;
         if (msg.role === 'user') {
-          cbRef.current.onUserTranscript?.(msg.transcript);
+          cbRef.current.onUserTranscript?.(text);
         } else if (msg.role === 'assistant') {
-          cbRef.current.onAssistantTranscript?.(msg.transcript);
+          cbRef.current.onAssistantTranscript?.(text);
         }
       });
 
@@ -171,7 +181,7 @@ export default function useVapi({
         provider: 'deepgram',
         model: 'nova-2',
         language: 'en',
-        endpointing: 500,
+        endpointing: 2500,
       },
       interruptionsEnabled: false,
       // Short first message — don't waste the user's turn time

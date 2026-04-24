@@ -25,7 +25,7 @@ export default function StartPage({ onStart }) {
       <div className="start-page__scrim" aria-hidden="true" />
       <div className="start-page__ambient" aria-hidden="true" />
 
-      <span className="start-page__protocol">Case Protocol #882-Alpha // System Active</span>
+
 
       <section className="start-page__panel texture-leather">
         <p className="start-page__brand">SUPREME</p>

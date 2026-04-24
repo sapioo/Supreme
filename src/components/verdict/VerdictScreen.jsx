@@ -94,13 +94,26 @@ export default function VerdictScreen() {
                 ? 'The Court finds that your arguments were more compelling.'
                 : 'The opposing counsel presented a stronger case before the Court.'}
             </p>
-            <div className="verdict__margin">
-              <span className="verdict__margin-label">Final Score</span>
-              <span className="verdict__margin-values">
-                <span className="verdict__margin-user">{verdict.userTotal}</span>
-                <span className="verdict__margin-sep">—</span>
-                <span className="verdict__margin-ai">{verdict.aiTotal}</span>
-              </span>
+
+            {/* Score comparison card */}
+            <div className="verdict__score-card">
+              <div className="verdict__score-side verdict__score-side--user">
+                <span className="verdict__score-party">You</span>
+                <span className="verdict__score-num verdict__score-num--user">{verdict.userTotal}</span>
+              </div>
+              <div className="verdict__score-divider">
+                <div className="verdict__score-split-bar">
+                  <div
+                    className="verdict__score-split-fill verdict__score-split-fill--user"
+                    style={{ width: `${verdict.userTotal / (verdict.userTotal + verdict.aiTotal) * 100}%` }}
+                  />
+                </div>
+                <span className="verdict__score-vs">vs</span>
+              </div>
+              <div className="verdict__score-side verdict__score-side--ai">
+                <span className="verdict__score-party">AI Counsel</span>
+                <span className="verdict__score-num verdict__score-num--ai">{verdict.aiTotal}</span>
+              </div>
             </div>
           </div>
         )}

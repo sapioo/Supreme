@@ -1,12 +1,13 @@
 import { useRef, useCallback, useState } from 'react';
 import HeroSection from '../components/landing/HeroSection';
 import CaseGrid from '../components/landing/CaseGrid';
+import CustomCaseBuilder from '../components/landing/CustomCaseBuilder';
 import ArchiveSection from '../components/landing/ArchiveSection';
 import './LandingPage.css';
 
 export default function LandingPage({ onSelectCase }) {
-  const caseGridRef  = useRef(null);
-  const archiveRef   = useRef(null);
+  const caseGridRef = useRef(null);
+  const archiveRef = useRef(null);
   const [showArchive, setShowArchive] = useState(false);
 
   const handleExplore = useCallback(() => {
@@ -29,6 +30,9 @@ export default function LandingPage({ onSelectCase }) {
           <h2 className="landing-page__cases-title">Historical Dossiers</h2>
         </div>
         <CaseGrid onSelectCase={onSelectCase} />
+
+        {/* Custom case builder — below the premade cases */}
+        <CustomCaseBuilder onSelectCase={onSelectCase} />
 
         {/* Archive section — below the case grid */}
         <div className="landing-page__archive-head" ref={archiveRef}>

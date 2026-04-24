@@ -52,16 +52,17 @@ export default function ArgumentInput({
   // Mic button is blocked when AI is speaking or round is done
   const micBlocked = micDisabled || isAiSpeaking;
 
-  // Status message for voice mode
+  // Status message for voice mode with enhanced feedback
   const getVoiceStatus = () => {
     if (connectionStatus === 'connecting')          return 'Connecting to courtroom...';
-    if (connectionStatus === 'error')               return 'Connection error — try again';
-    if (isAiSpeaking)                               return 'Opposing counsel is speaking...';
+    if (connectionStatus === 'error')               return 'Connection error — check microphone permissions and try again';
+    if (isAiSpeaking)                               return 'Your microphone is muted while opposing counsel speaks';
     if (connectionStatus === 'connected' && isUserSpeaking) return 'Recording your argument...';
+    if (connectionStatus === 'connected' && isMuted) return 'Microphone muted — unmute to speak';
     if (connectionStatus === 'connected')           return 'Listening — speak when ready';
     if (!canStartVoice)                             return 'Preparing case context...';
-    if (isCallActive)                               return 'Session active';
-    return 'Press mic to begin';
+    if (isCallActive)                               return 'Voice session active — ready to record';
+    return 'Press microphone to begin voice session';
   };
 
   return (
@@ -104,6 +105,17 @@ export default function ArgumentInput({
       {/* ── Voice Mode ── */}
       {isVoiceMode ? (
         <div className="arg-input__voice-area">
+          {/* Enhanced muted state indicator when AI is speaking */}
+          {isAiSpeaking && isCallActive && (
+            <div className="arg-input__muted-banner" role="alert">
+              <div className="arg-input__muted-banner-icon">🔇</div>
+              <div className="arg-input__muted-banner-content">
+                <div className="arg-input__muted-banner-title">Microphone Temporarily Muted</div>
+                <div className="arg-input__muted-banner-subtitle">Wait for opposing counsel to finish speaking</div>
+              </div>
+            </div>
+          )}
+
           {/* Mic button */}
           <button
             className={[
@@ -148,17 +160,29 @@ export default function ArgumentInput({
             </div>
           </button>
 
-          {/* Status */}
+          {/* Enhanced Status with connection indicator */}
           <div className="arg-input__voice-status">
             <span className={[
               'arg-input__voice-status-dot',
-              isCallActive && !isAiSpeaking ? 'arg-input__voice-status-dot--live' : '',
+              connectionStatus === 'connected' && !isAiSpeaking ? 'arg-input__voice-status-dot--live' : '',
+              connectionStatus === 'connecting' ? 'arg-input__voice-status-dot--connecting' : '',
+              connectionStatus === 'error' ? 'arg-input__voice-status-dot--error' : '',
               isAiSpeaking                  ? 'arg-input__voice-status-dot--ai'   : '',
             ].join(' ')} />
-            <span className={`arg-input__voice-status-text ${isAiSpeaking ? 'arg-input__voice-status-text--ai' : ''}`}>
+            <span className={`arg-input__voice-status-text ${isAiSpeaking ? 'arg-input__voice-status-text--ai' : ''} ${connectionStatus === 'error' ? 'arg-input__voice-status-text--error' : ''}`}>
               {getVoiceStatus()}
             </span>
           </div>
+
+          {/* Connection status indicator */}
+          {isCallActive && (
+            <div className="arg-input__connection-status">
+              <div className="arg-input__connection-indicator">
+                <span className="arg-input__connection-dot" />
+                <span className="arg-input__connection-text">Voice session active</span>
+              </div>
+            </div>
+          )}
 
           {/* Mute toggle — only when call active and AI is NOT speaking */}
           {isCallActive && !isAiSpeaking && (
@@ -168,12 +192,28 @@ export default function ArgumentInput({
               id="mute-toggle"
               title={isMuted ? 'Unmute microphone' : 'Mute microphone'}
             >
-              {isMuted ? '🔇' : '🔊'}
+              <span className="arg-input__mute-btn-icon">{isMuted ? '🔇' : '🔊'}</span>
+              <span className="arg-input__mute-btn-text">{isMuted ? 'Unmute' : 'Mute'}</span>
             </button>
           )}
 
+          {/* Enhanced error display with troubleshooting guidance */}
           {voiceError && !isCallActive && (
-            <p className="arg-input__voice-error" role="alert">{voiceError}</p>
+            <div className="arg-input__voice-error-panel" role="alert">
+              <div className="arg-input__voice-error-icon">⚠</div>
+              <div className="arg-input__voice-error-content">
+                <div className="arg-input__voice-error-message">{voiceError}</div>
+                <div className="arg-input__voice-error-help">
+                  <strong>Troubleshooting:</strong>
+                  <ul>
+                    <li>Check microphone permissions in your browser</li>
+                    <li>Ensure microphone is not used by other applications</li>
+                    <li>Try refreshing the page and starting again</li>
+                    <li>Switch to text mode if voice issues persist</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       ) : (

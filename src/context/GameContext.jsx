@@ -61,22 +61,24 @@ function gameReducer(state, action) {
         ...state,
         arguments: [
           ...state.arguments,
-          { side: 'user', text: action.payload, round: state.currentRound }
+          { side: 'user', text: String(action.payload ?? ''), round: state.currentRound }
         ],
         isAiTyping: true,
       };
 
-    case 'AI_RESPOND':
+    case 'AI_RESPOND': {
+      const aiText = String(action.payload ?? '');
       return {
         ...state,
-        arguments: action.payload
+        arguments: aiText
           ? [
-              ...state.arguments,
-              { side: 'ai', text: action.payload, round: state.currentRound },
-            ]
+            ...state.arguments,
+            { side: 'ai', text: aiText, round: state.currentRound },
+          ]
           : state.arguments,
         isAiTyping: false,
       };
+    }
 
     case 'SCORE_ROUND':
       return {

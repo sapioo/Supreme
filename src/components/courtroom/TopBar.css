@@ -20,31 +20,15 @@
   flex: 1;
 }
 
-.topbar__badge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  background: var(--color-secondary-container);
-  border-radius: var(--radius-sm);
-  font-family: var(--font-label);
-  font-size: 10px;
-  font-weight: 800;
-  color: var(--color-secondary-fixed);
-  border: 1px solid rgba(233, 193, 118, 0.3);
-  flex-shrink: 0;
-}
-
-.topbar__case-name {
+.topbar__wordmark {
   font-family: var(--font-heading);
-  font-size: var(--text-sm);
-  font-weight: 600;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.22em;
   color: var(--color-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 300px;
+  text-transform: uppercase;
+  opacity: 0.92;
+  padding-left: 1rem;
 }
 
 /* Round indicator */
@@ -247,6 +231,15 @@
 }
 
 @keyframes pulseDot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.4; transform: scale(0.8); }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.4;
+    transform: scale(0.8);
+  }
 }

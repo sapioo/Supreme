@@ -54,52 +54,22 @@
     opacity: 0.45;
     transform: translate(-50%, -50%) scale(0.9);
   }
+
   to {
     opacity: 0.12;
     transform: translate(-50%, -50%) scale(1.25);
   }
 }
 
-.gavel-loader__gavel {
+/* SVG scales icon */
+.gavel-loader__icon {
   position: absolute;
   left: 50%;
-  top: 12px;
-  transform: translateX(-50%);
-  transform-origin: bottom center;
-  animation: gavelBounce 1.5s ease-in-out infinite;
-}
-
-.gavel-loader__gavel-container--struck .gavel-loader__gavel {
-  animation: gavelStrike 0.45s ease-in-out forwards;
-}
-
-.gavel-loader__handle {
-  width: 8px;
-  height: 64px;
-  border-radius: 3px;
-  margin: 0 auto;
-  background: linear-gradient(180deg, var(--color-surface-container-high), var(--color-surface-container-low));
-}
-
-.gavel-loader__head {
-  width: 54px;
-  height: 24px;
-  margin-top: -3px;
-  margin-left: -23px;
-  border-radius: 4px;
-  background: linear-gradient(180deg, var(--color-secondary-fixed), var(--color-secondary), var(--color-on-secondary-container));
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
-}
-
-.gavel-loader__block {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
+  top: 50%;
   width: 72px;
-  height: 16px;
-  transform: translateX(-50%);
-  border-radius: 4px;
-  background: linear-gradient(180deg, var(--color-surface-container-high), var(--color-surface-container-low));
+  height: 72px;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 4px 16px rgba(233, 193, 118, 0.35));
 }
 
 .gavel-loader__impact {
@@ -119,6 +89,7 @@
     opacity: 1;
     transform: translate(-50%, 50%) scale(0.45);
   }
+
   to {
     opacity: 0;
     transform: translate(-50%, 50%) scale(2);

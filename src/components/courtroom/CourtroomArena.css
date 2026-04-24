@@ -1,8 +1,10 @@
 .courtroom {
   display: flex;
   flex-direction: column;
-  height: 100vh;        /* fill viewport exactly */
-  overflow: hidden;     /* prevent page-level scroll */
+  height: 100vh;
+  /* fill viewport exactly */
+  overflow: hidden;
+  /* prevent page-level scroll */
   background:
     radial-gradient(circle at 12% 8%, rgba(183, 200, 222, 0.08), transparent 35%),
     radial-gradient(circle at 84% 12%, rgba(233, 193, 118, 0.09), transparent 37%),
@@ -20,7 +22,7 @@
     repeating-linear-gradient(90deg, transparent, transparent 4px, rgba(255, 255, 255, 0.012) 4px, rgba(255, 255, 255, 0.012) 5px);
 }
 
-.courtroom > * {
+.courtroom>* {
   position: relative;
   z-index: 1;
 }
@@ -137,7 +139,23 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.courtroom__notifications {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--space-4);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+}
+
+.courtroom__notifications .notification-toast {
+  pointer-events: auto;
 }
 
 @media (max-width: 1080px) {
@@ -146,4 +164,94 @@
     gap: var(--space-3);
     padding: var(--space-3);
   }
+
+  .courtroom__notifications {
+    top: var(--space-3);
+    right: var(--space-3);
+    left: var(--space-3);
+  }
+
+  .courtroom__notifications .notification-toast {
+    max-width: none;
+  }
+}
+
+/* ── Objection button ────────────────────────────────────────────────────── */
+
+.courtroom__objection-area {
+  padding-top: var(--space-2);
+}
+
+.courtroom__objection-btn {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 0.65rem 1rem;
+  border-radius: var(--radius-sm);
+  background: rgba(180, 30, 30, 0.12);
+  border: 1px solid rgba(220, 60, 60, 0.3);
+  color: #e57373;
+  cursor: pointer;
+  transition: background var(--transition-base), border-color var(--transition-base), transform var(--transition-base);
+  position: relative;
+  overflow: hidden;
+}
+
+.courtroom__objection-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(220, 60, 60, 0.06);
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+
+.courtroom__objection-btn:hover:not(:disabled)::after {
+  opacity: 1;
+}
+
+.courtroom__objection-btn:hover:not(:disabled) {
+  background: rgba(180, 30, 30, 0.2);
+  border-color: rgba(220, 60, 60, 0.55);
+  transform: translateY(-1px);
+}
+
+.courtroom__objection-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.courtroom__objection-btn--loading {
+  animation: objectionPulse 1s ease infinite;
+}
+
+@keyframes objectionPulse {
+
+  0%,
+  100% {
+    border-color: rgba(220, 60, 60, 0.3);
+  }
+
+  50% {
+    border-color: rgba(220, 60, 60, 0.7);
+  }
+}
+
+.courtroom__objection-label {
+  font-family: var(--font-label);
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.courtroom__objection-meta {
+  font-family: var(--font-label);
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(229, 115, 115, 0.6);
 }

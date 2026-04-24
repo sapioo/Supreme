@@ -9,24 +9,32 @@ import JudgeBench from './JudgeBench';
 import ChatArea from './ChatArea';
 import VoiceWaveform from './VoiceWaveform';
 import ArgumentInput from './ArgumentInput';
+import TurnBanner from './TurnBanner';
+import NotificationToast from './NotificationToast';
 import './CourtroomArena.css';
 
 export default function CourtroomArena() {
   const state = useGame();
   const dispatch = useGameDispatch();
 
-  const [showScores, setShowScores]             = useState(false);
-  const [roundComplete, setRoundComplete]       = useState(false);
-  // Default to voice mode — text is the fallback option
-  const [isVoiceMode, setIsVoiceMode]           = useState(true);
+  const [showScores, setShowScores] = useState(false);
+  const [roundComplete, setRoundComplete] = useState(false);
+  const [isVoiceMode, setIsVoiceMode] = useState(true);
   const [isUserTurnActive, setIsUserTurnActive] = useState(true);
-  const [turnTimerKey, setTurnTimerKey]         = useState(0);
-  const [voiceError, setVoiceError]             = useState('');
+  const [turnTimerKey, setTurnTimerKey] = useState(0);
+  const [voiceError, setVoiceError] = useState('');
+  // Objection system — max 2 uses per game, fires a NIM rebuttal prompt
+  const [objectionCount, setObjectionCount] = useState(0);
+  const [isObjecting, setIsObjecting] = useState(false);
+  const MAX_OBJECTIONS = 2;
+
+  // Notification system
+  const [notifications, setNotifications] = useState([]);
 
   // Qdrant
-  const [qdrantReady, setQdrantReady]                   = useState(false);
-  const [roundContext, setRoundContext]                 = useState('');
-  const [hasContextAttempted, setHasContextAttempted]   = useState(false);
+  const [qdrantReady, setQdrantReady] = useState(false);
+  const [roundContext, setRoundContext] = useState('');
+  const [hasContextAttempted, setHasContextAttempted] = useState(false);
 
   // Voice priming
   const [hasPrimedVoice, setHasPrimedVoice] = useState(false);
@@ -35,12 +43,36 @@ export default function CourtroomArena() {
   const [liveTranscript, setLiveTranscript] = useState('');
   const liveTranscriptRef = useRef('');
 
+  // User speech accumulator — chunks build into one full argument per round
+  const [liveUserTranscript, setLiveUserTranscript] = useState('');
+  const userTranscriptRef = useRef('');
+
   // Track whether AI is currently speaking so we can mute the user mic
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   // Ref to track mute state without triggering re-renders in the effect
   const isMutedByAiRef = useRef(false);
 
   const aiSide = state.selectedSide === 'petitioner' ? 'respondent' : 'petitioner';
+
+  // ─── Notification system functions ─────────────────────────────────────────
+  const addNotification = useCallback((message, type = 'info', duration = 4000) => {
+    const id = Date.now() + Math.random();
+    const notification = { id, message, type, duration };
+    setNotifications(prev => [...prev, notification]);
+
+    // Auto-remove after duration
+    if (duration > 0) {
+      setTimeout(() => {
+        removeNotification(id);
+      }, duration);
+    }
+
+    return id;
+  }, []);
+
+  const removeNotification = useCallback((id) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  }, []);
 
   // ─── Qdrant: fetch case overview on mount ──────────────────────────────────
   useEffect(() => {
@@ -75,16 +107,62 @@ export default function CourtroomArena() {
         if (overview.formatted) {
           dispatch({ type: 'SET_CASE_CONTEXT', payload: overview.formatted });
           console.log(`[CourtRoom] Qdrant context loaded (${health.pointCount} points).`);
+
+          // Add notification for successful context loading
+          addNotification(
+            "Case knowledge base loaded successfully. Enhanced AI responses are now available.",
+            'success',
+            4000
+          );
         }
       } catch (err) {
         console.error('[CourtRoom] Qdrant setup failed:', err.message);
         setQdrantReady(false);
+
+        // Add notification for context loading failure
+        addNotification(
+          "Case knowledge base unavailable. Using standard AI responses.",
+          'warning',
+          4000
+        );
       } finally {
         dispatch({ type: 'SET_LOADING_CONTEXT', payload: false });
         setHasContextAttempted(true);
       }
     })();
-  }, [state.selectedCase?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [state.selectedCase?.id, dispatch, addNotification]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Add notification when game starts (first round) ──────────────────────
+  useEffect(() => {
+    if (state.currentRound === 1 && isUserTurnActive && state.arguments.length === 0) {
+      // This is the start of the first round
+      const timeoutId = setTimeout(() => {
+        addNotification(
+          `Case proceedings begin! Round 1 of ${state.totalRounds}. Present your opening argument.`,
+          'round',
+          5000
+        );
+      }, 1000); // Delay to let other initialization complete
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [state.currentRound, isUserTurnActive, state.arguments.length, state.totalRounds, addNotification]);
+
+  // ─── Add notification when user turn becomes active ──────────────────────
+  useEffect(() => {
+    if (isUserTurnActive && !roundComplete && state.currentRound > 0) {
+      // Only show this notification if we're in an active round (not initial state)
+      const timeoutId = setTimeout(() => {
+        addNotification(
+          `Your turn is active for Round ${state.currentRound}. Present your argument before time runs out.`,
+          'info',
+          4000
+        );
+      }, 500); // Small delay to avoid showing during rapid state changes
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isUserTurnActive, roundComplete, state.currentRound, addNotification]);
 
   // ─── Build Vapi system prompt ──────────────────────────────────────────────
   const buildSystemPrompt = useCallback(() => {
@@ -134,18 +212,43 @@ export default function CourtroomArena() {
     setLiveTranscript(updated);
   }, []);
 
-  // User voice transcript → submit as argument, score it
-  const handleUserVoiceTranscript = useCallback(async (transcript) => {
-    if (!transcript || transcript.trim().length < 10) return;
+  // User voice transcript chunk → accumulate into one argument bubble
+  // Scoring + submission happens only once at round end (processAndSubmitUserTranscript)
+  const handleUserVoiceTranscript = useCallback((transcript) => {
+    if (!transcript) return;
+    const chunk = String(transcript).trim();   // always a string
+    if (!chunk) return;
+    const updated = userTranscriptRef.current
+      ? userTranscriptRef.current + ' ' + chunk
+      : chunk;
+    userTranscriptRef.current = updated;
+    setLiveUserTranscript(updated);
+  }, []);
+
+  // Flush accumulated user transcript → submit + score once per round
+  const processAndSubmitUserTranscript = useCallback(async () => {
+    const raw = userTranscriptRef.current;
+    const fullTranscript = typeof raw === 'string' ? raw.trim() : String(raw ?? '').trim();
+    userTranscriptRef.current = '';
+    setLiveUserTranscript('');
+
+    if (!fullTranscript || fullTranscript.length < 10) return;
+
     setIsUserTurnActive(false);
-    dispatch({ type: 'SUBMIT_ARGUMENT', payload: transcript });
+    addNotification(
+      "Voice argument submitted. Awaiting opposing counsel's response...",
+      'info',
+      3000
+    );
+
+    dispatch({ type: 'SUBMIT_ARGUMENT', payload: fullTranscript });
     setShowScores(false);
 
-    // Score after a delay to let Vapi respond first
+    // Score after a short delay to let AI respond first
     setTimeout(async () => {
-      let userScore = scoreArgument(transcript, state.selectedCase, state.selectedSide, state.currentRound);
+      let userScore = scoreArgument(fullTranscript, state.selectedCase, state.selectedSide, state.currentRound);
       const aiScoreAttempt = await scoreArgumentWithAI({
-        userArgument: transcript,
+        userArgument: fullTranscript,
         caseData: state.selectedCase,
         side: state.selectedSide,
         round: state.currentRound,
@@ -158,10 +261,17 @@ export default function CourtroomArena() {
       dispatch({ type: 'SCORE_ROUND', payload: { userScore, aiScore, judgeComment } });
       setShowScores(true);
       setRoundComplete(true);
+
+      addNotification(
+        "Round Complete! Both parties have presented their arguments. You can now proceed to the next round.",
+        'round',
+        5000
+      );
+
       // Ensure isAiTyping is cleared even if assistant transcript never fires
       dispatch({ type: 'AI_RESPOND', payload: '' });
     }, 4000);
-  }, [dispatch, state.selectedCase, state.selectedSide, state.currentRound]);
+  }, [dispatch, state.selectedCase, state.selectedSide, state.currentRound, addNotification]);
 
   const vapi = useVapi({
     systemPrompt: buildSystemPrompt(),
@@ -172,25 +282,43 @@ export default function CourtroomArena() {
       setIsAiSpeaking(false);
       liveTranscriptRef.current = '';
       setLiveTranscript('');
+      userTranscriptRef.current = '';
+      setLiveUserTranscript('');
+      addNotification(
+        "Voice session started successfully. You can now speak your arguments.",
+        'voice',
+        3000
+      );
     },
     onCallEnd: () => {
       setIsAiSpeaking(false);
-      // Commit any remaining transcript
+      // Flush any remaining user speech as a complete submission
+      processAndSubmitUserTranscript();
+      // Commit any remaining AI transcript
       const remaining = liveTranscriptRef.current.trim();
       if (remaining) {
         dispatch({ type: 'AI_RESPOND', payload: remaining });
         liveTranscriptRef.current = '';
         setLiveTranscript('');
       }
+      addNotification(
+        "Voice session ended. You can start a new session or switch to text mode.",
+        'voice',
+        3000
+      );
     },
     onError: (err) => {
-      setVoiceError(err?.message || 'Voice connection failed.');
+      const errorMessage = err?.message || 'Voice connection failed.';
+      setVoiceError(errorMessage);
       setIsAiSpeaking(false);
+      addNotification(
+        `Voice Error: ${errorMessage}. Check microphone permissions and try again, or switch to text mode.`,
+        'error',
+        8000
+      );
     },
   });
 
-  // ─── Mute/unmute user mic based on who is speaking ────────────────────────
-  // When AI volume goes above threshold → mute user mic
   // ─── Mute/unmute user mic based on who is speaking ────────────────────────
   // Uses isMutedByAiRef so we only call toggleMute() once per transition,
   // not on every volume-level event. The 1.5s debounce in useVapi ensures
@@ -205,10 +333,22 @@ export default function CourtroomArena() {
       isMutedByAiRef.current = true;
       setIsAiSpeaking(true);
       vapi.toggleMute(); // mute user while AI speaks
+      // Add notification when mic gets muted
+      addNotification(
+        "Your microphone is temporarily muted while opposing counsel speaks.",
+        'voice',
+        2000
+      );
     } else if (!vapi.isAssistantSpeaking && isMutedByAiRef.current) {
       isMutedByAiRef.current = false;
       setIsAiSpeaking(false);
       vapi.toggleMute(); // unmute user when AI finishes
+      // Add notification when mic gets unmuted
+      addNotification(
+        "Your microphone is now active. You can speak your response.",
+        'voice',
+        2000
+      );
 
       // Commit the accumulated live transcript to the chat as one bubble
       const fullTranscript = liveTranscriptRef.current.trim();
@@ -218,7 +358,7 @@ export default function CourtroomArena() {
         setLiveTranscript('');
       }
     }
-  }, [vapi.isAssistantSpeaking, vapi.isCallActive]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [vapi.isAssistantSpeaking, vapi.isCallActive, addNotification]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Prime Vapi with case context once call is active ─────────────────────
   useEffect(() => {
@@ -279,6 +419,14 @@ export default function CourtroomArena() {
   // ─── Submit argument (text mode) ──────────────────────────────────────────
   const handleSubmitArgument = useCallback(async (text) => {
     setIsUserTurnActive(false);
+
+    // Add notification for input being disabled after text submission
+    addNotification(
+      "Text argument submitted. Awaiting opposing counsel's response...",
+      'info',
+      3000
+    );
+
     dispatch({ type: 'SUBMIT_ARGUMENT', payload: text });
     setShowScores(false);
 
@@ -292,16 +440,29 @@ export default function CourtroomArena() {
       }),
     ]);
 
-    dispatch({ type: 'AI_RESPOND', payload: aiResponse });
+    // Ensure aiResponse is always a string — never let an object reach the reducer
+    const aiText = typeof aiResponse === 'string' ? aiResponse : String(aiResponse ?? '');
+
+    // Item 2 — 500ms "thinking" pause before AI response appears
+    await new Promise(r => setTimeout(r, 500));
+    dispatch({ type: 'AI_RESPOND', payload: aiText });
 
     const userScore = aiScoreAttempt || scoreArgument(text, state.selectedCase, state.selectedSide, state.currentRound);
     const aiScore = getAIScore(state.currentRound);
     const judgeComment = getJudgeComment(userScore, aiScore);
 
+    // Item 3 — 800ms deliberation delay before Judge reveals scores
+    await new Promise(r => setTimeout(r, 800));
     dispatch({ type: 'SCORE_ROUND', payload: { userScore, aiScore, judgeComment } });
     setShowScores(true);
     setRoundComplete(true);
-  }, [dispatch, state.selectedCase, state.selectedSide, state.currentRound, getAIResponseText]);
+
+    addNotification(
+      "Round Complete! Both parties have presented their arguments. You can now proceed to the next round.",
+      'round',
+      5000
+    );
+  }, [dispatch, state.selectedCase, state.selectedSide, state.currentRound, getAIResponseText, addNotification]);
 
   // ─── Next round / end game — immediate, no delay ──────────────────────────
   const handleNextRound = useCallback(() => {
@@ -314,6 +475,13 @@ export default function CourtroomArena() {
       );
       const aiTotal = state.roundScores.reduce(
         (sum, r) => sum + Object.values(r.aiScore).reduce((a, b) => a + b, 0), 0
+      );
+
+      // Add notification for game ending
+      addNotification(
+        "Case concluded! Proceeding to verdict based on all arguments presented.",
+        'round',
+        4000
       );
 
       dispatch({
@@ -334,10 +502,26 @@ export default function CourtroomArena() {
       setIsAiSpeaking(false);
       liveTranscriptRef.current = '';
       setLiveTranscript('');
+      userTranscriptRef.current = '';
+      setLiveUserTranscript('');
       setTurnTimerKey((k) => k + 1);
       dispatch({ type: 'NEXT_ROUND' });
+
+      // Add notification for round advancement
+      addNotification(
+        `Round ${state.currentRound + 1} begins! Present your next argument within the time limit.`,
+        'round',
+        4000
+      );
+
+      // Add notification for input being re-enabled
+      addNotification(
+        "Your turn is now active. You can submit arguments in voice or text mode.",
+        'info',
+        3000
+      );
     }
-  }, [dispatch, state.currentRound, state.totalRounds, state.roundScores, vapi]);
+  }, [dispatch, state.currentRound, state.totalRounds, state.roundScores, vapi, addNotification]);
 
   // ─── End Case early — verdict from scores so far ──────────────────────────
   const handleEndCase = useCallback(() => {
@@ -367,24 +551,41 @@ export default function CourtroomArena() {
   // ─── Timer end: lock input, stop mic, show next-round prompt ────────────────
   const handleTimerEnd = useCallback(() => {
     if (!isUserTurnActive || roundComplete) return;
+
+    // Add prominent "Time's Up!" notification
+    addNotification(
+      "Time's Up! The round has ended due to timeout. You can now proceed to the next round or end the case.",
+      'timer',
+      6000 // Show for 6 seconds to ensure user sees it
+    );
+
     // Stop voice call immediately so user can't keep speaking
     if (vapi.isCallActive) vapi.stopCall();
     // Lock the turn — no fake message submitted
     setIsUserTurnActive(false);
     setRoundComplete(true);
-    // Score zero for user (didn't speak in time)
+    // Both sides score zero — nothing was argued this round
     const userScore = { legalReasoning: 0, useOfPrecedent: 0, persuasiveness: 0, constitutionalValidity: 0 };
-    const aiScore = getAIScore(state.currentRound);
+    const aiScore = { legalReasoning: 0, useOfPrecedent: 0, persuasiveness: 0, constitutionalValidity: 0 };
     const judgeComment = 'The counsel did not present arguments within the allotted time.';
     dispatch({ type: 'SCORE_ROUND', payload: { userScore, aiScore, judgeComment } });
     setShowScores(true);
-  }, [isUserTurnActive, roundComplete, state.currentRound, dispatch, vapi]);
+  }, [isUserTurnActive, roundComplete, state.currentRound, dispatch, vapi, addNotification]);
 
   const handleToggleVoiceMode = useCallback(() => {
     if (isVoiceMode && vapi.isCallActive) vapi.stopCall();
     setIsVoiceMode((v) => !v);
     setVoiceError('');
-  }, [isVoiceMode, vapi]);
+
+    // Add notification for mode switching
+    addNotification(
+      isVoiceMode
+        ? "Switched to text mode. Type your arguments in the text area below."
+        : "Switched to voice mode. Press the microphone button to begin speaking.",
+      'info',
+      3000
+    );
+  }, [isVoiceMode, vapi, addNotification]);
 
   const canStartVoice = !state.isLoadingContext && (!qdrantReady || hasContextAttempted);
 
@@ -394,20 +595,66 @@ export default function CourtroomArena() {
     vapi.startCall();
   }, [vapi, canStartVoice]);
 
+  // ─── Objection — pure NIM call, no Vapi involvement ────────────────────────
+  const handleObjection = useCallback(async () => {
+    if (objectionCount >= MAX_OBJECTIONS || isObjecting) return;
+    // Find the last AI argument in this round
+    const lastAiArg = [...state.arguments].reverse().find(a => a.side === 'ai');
+    if (!lastAiArg) return;
+
+    setIsObjecting(true);
+    setObjectionCount(c => c + 1);
+    addNotification('OBJECTION filed! Opposing counsel must justify their argument.', 'round', 4000);
+
+    const objectionPrompt =
+      `[OBJECTION] The user challenges your last statement: "${lastAiArg.text.slice(0, 300)}…". ` +
+      `You must directly justify and defend this argument with specific legal authority. Keep your response under 120 words.`;
+
+    try {
+      const rebuttal = await generateAIArgument({
+        userArgument: objectionPrompt,
+        caseData: state.selectedCase,
+        aiSide,
+        currentRound: state.currentRound,
+        totalRounds: state.totalRounds,
+        difficulty: state.difficulty || 'medium',
+        caseContext: state.caseContext || '',
+        conversationHistory: state.arguments.map(a => ({ side: a.side, text: a.text })),
+      });
+      const rebuttalText = typeof rebuttal === 'string' ? rebuttal : String(rebuttal ?? '');
+      if (rebuttalText) dispatch({ type: 'AI_RESPOND', payload: `[Objection Rebuttal] ${rebuttalText}` });
+    } catch (err) {
+      console.error('[Objection] NIM rebuttal failed:', err.message);
+    } finally {
+      setIsObjecting(false);
+    }
+  }, [objectionCount, isObjecting, state.arguments, state.selectedCase, state.selectedSide, state.currentRound, state.totalRounds, state.caseContext, aiSide, dispatch, addNotification]);
+
   // Mic is disabled when AI is speaking or round is complete or input is disabled
   const isInputDisabled = state.isAiTyping || roundComplete;
-  const isMicDisabled   = isInputDisabled || isAiSpeaking || vapi.isAssistantSpeaking;
+  const isMicDisabled = isInputDisabled || isAiSpeaking || vapi.isAssistantSpeaking;
   const displayVoiceError = vapi.lastError || voiceError;
 
   // Next round button shows when round is complete
   // (either both spoke, or timer expired and locked the round)
   const currentRoundArgs = state.arguments.filter(a => a.round === state.currentRound);
   const userHasSpoken = currentRoundArgs.some(a => a.side === 'user');
-  const aiHasSpoken   = currentRoundArgs.some(a => a.side === 'ai');
+  const aiHasSpoken = currentRoundArgs.some(a => a.side === 'ai');
   const canAdvanceRound = roundComplete && (userHasSpoken && aiHasSpoken || !isUserTurnActive);
+
+  // Determine round completion reason for button labeling
+  const roundCompletionReason = !isUserTurnActive && !userHasSpoken ? 'timeout' : 'both-spoke';
 
   return (
     <div className="courtroom" id="courtroom-arena">
+      {/* Turn banner — slides in at start of each user turn */}
+      <TurnBanner
+        side={state.selectedSide}
+        round={state.currentRound}
+        totalRounds={state.totalRounds}
+        active={isUserTurnActive && !roundComplete}
+      />
+
       {/* Loading overlay */}
       {state.isLoadingContext && (
         <div className="courtroom__context-loading" id="context-loading-indicator">
@@ -451,6 +698,24 @@ export default function CourtroomArena() {
             </div>
           )}
 
+          {/* Objection button — NIM only, no Vapi involvement */}
+          {!roundComplete && state.arguments.some(a => a.side === 'ai') && (
+            <div className="courtroom__objection-area">
+              <button
+                className={`courtroom__objection-btn ${isObjecting ? 'courtroom__objection-btn--loading' : ''}`}
+                onClick={handleObjection}
+                disabled={objectionCount >= MAX_OBJECTIONS || isObjecting}
+                id="objection-btn"
+                title={objectionCount >= MAX_OBJECTIONS ? 'No objections remaining' : 'Challenge the opposing counsel\'s last argument'}
+              >
+                <span className="courtroom__objection-label">OBJECTION</span>
+                <span className="courtroom__objection-meta">
+                  {isObjecting ? 'Filing…' : `${MAX_OBJECTIONS - objectionCount} remaining`}
+                </span>
+              </button>
+            </div>
+          )}
+
           {canAdvanceRound && (
             <div className="courtroom__round-action">
               <button
@@ -460,10 +725,8 @@ export default function CourtroomArena() {
               >
                 {state.currentRound >= state.totalRounds ? (
                   <><span>Hear the Verdict</span><span className="courtroom__next-icon">⚖</span></>
-                ) : !userHasSpoken ? (
-                  <><span>Proceed to Round {state.currentRound + 1}</span><span className="courtroom__next-icon">→</span></>
                 ) : (
-                  <><span>Round {state.currentRound + 1}</span><span className="courtroom__next-icon">→</span></>
+                  <><span>Next Round {state.currentRound + 1}</span><span className="courtroom__next-icon">→</span></>
                 )}
               </button>
             </div>
@@ -476,7 +739,9 @@ export default function CourtroomArena() {
             isAiTyping={state.isAiTyping}
             isAiSpeaking={isAiSpeaking}
             liveTranscript={liveTranscript}
+            liveUserTranscript={liveUserTranscript}
             currentRound={state.currentRound}
+            caseName={state.selectedCase?.shortName}
           />
 
           <ArgumentInput
@@ -502,6 +767,19 @@ export default function CourtroomArena() {
           />
         </div>
       </section>
+
+      {/* Notification system */}
+      {notifications.length > 0 && (
+        <div className="courtroom__notifications" id="notification-container">
+          {notifications.map(notification => (
+            <NotificationToast
+              key={notification.id}
+              notification={notification}
+              onRemove={removeNotification}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

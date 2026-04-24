@@ -1,0 +1,9 @@
+
+ RUN  v4.1.5 /home/sapio/code/supreme/Supreme
+
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  08:54:31
+   Duration  2.29s (transform 351ms, setup 137ms, import 474ms, tests 126ms, environment 1.29s)
+

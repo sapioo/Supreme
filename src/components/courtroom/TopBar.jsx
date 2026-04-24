@@ -58,12 +58,9 @@ export default function TopBar({
 
   return (
     <header className="topbar" id="courtroom-topbar">
-      {/* Left: Case info */}
+      {/* Left: Supreme wordmark */}
       <div className="topbar__case">
-        <span className="topbar__badge">{courtBadge}</span>
-        <div className="topbar__case-info">
-          <h2 className="topbar__case-name">{caseName}</h2>
-        </div>
+        <span className="topbar__wordmark">SUPREME</span>
       </div>
 
       {/* Center: Round */}

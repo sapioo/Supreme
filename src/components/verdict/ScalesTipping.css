@@ -2,14 +2,14 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: var(--space-6);
   animation: fadeIn 1s ease both;
 }
 
 .scales-tip__svg {
   width: 300px;
-  height: 198px;
-  filter: drop-shadow(0 0 18px rgba(233, 193, 118, 0.2));
+  height: 220px;
+  filter: drop-shadow(0 0 20px rgba(233, 193, 118, 0.18));
+  overflow: visible;
 }
 
 /* Beam rotation */
@@ -18,7 +18,7 @@
   transition: transform 1.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-/* Tipping left = user wins (user side goes DOWN = heavier = winner) */
+/* Tipping left = user wins */
 .scales-tip--left .scales-tip__beam {
   transform: rotate(-12deg);
 }
@@ -28,33 +28,27 @@
   transform: rotate(12deg);
 }
 
-/* Labels */
-.scales-tip__labels {
-  display: flex;
-  justify-content: space-between;
-  width: 280px;
-  margin-top: var(--space-2);
+/* Score text inside the SVG — fade in after tipping */
+.scales-tip__score-left,
+.scales-tip__score-right {
+  animation: scoreReveal 0.6s ease 2s both;
 }
 
-.scales-tip__label {
-  font-family: var(--font-heading);
-  font-size: var(--text-xl);
-  font-weight: 800;
-  animation: fadeIn 0.6s ease 1.5s both;
+@keyframes scoreReveal {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.scales-tip__label--user {
-  color: var(--color-secondary);
-}
-
-.scales-tip__label--ai {
-  color: var(--color-primary-fixed-dim);
-}
-
-/* Responsive */
 @media (max-width: 480px) {
   .scales-tip__svg {
     width: 220px;
-    height: 150px;
+    height: 164px;
   }
 }
