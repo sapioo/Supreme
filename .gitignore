@@ -24,3 +24,25 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Test artifacts
+*.test.jsx
+*.test.js
+*.test.ts
+src/test/
+.kiro/
+*-results.txt
+*-output.txt
+*-output-2.txt
+test-results.json
+test-runner.js
+test-preservation.js
+test-simple-preservation.js
+verify-*.js
+verify-*.jsx
+*-verification-report.md
+*-implementation-summary.md
+voice-state-verification.md
+run-test.sh
+basic-test.js
+comprehensive-test-check.js
