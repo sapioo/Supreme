@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import heroImage from '../assets/hero.png';
 import cases from '../data/cases';
 import { getSessions } from '../services/sessionStorage';
@@ -42,11 +42,7 @@ const modeCards = [
 ];
 
 export default function StartPage({ onSelectPractice, onSelectDrafting }) {
-  const [sessionCount, setSessionCount] = useState(0);
-
-  useEffect(() => {
-    setSessionCount(getSessions().length);
-  }, []);
+  const [sessionCount] = useState(() => getSessions().length);
 
   const metrics = useMemo(() => {
     const totalCases = cases.length;
