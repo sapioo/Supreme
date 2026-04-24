@@ -1,0 +1,126 @@
+/* ═══════════════════════════════════════════════════════════════
+   ToneChip — Tonal analysis UI
+   ═══════════════════════════════════════════════════════════════ */
+
+.tone-chip {
+    margin-top: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--tone-bg, rgba(183, 200, 222, 0.08));
+    border: 1px solid var(--tone-border, rgba(183, 200, 222, 0.2));
+    border-radius: var(--radius-sm);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    animation: toneIn 0.45s ease 0.35s both;
+}
+
+@keyframes toneIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ── header row ──────────────────────────────────────────────── */
+
+.tone-chip__header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+}
+
+.tone-chip__icon {
+    font-size: 0.75rem;
+    opacity: 0.7;
+}
+
+.tone-chip__dominant {
+    font-family: var(--font-label);
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.tone-chip__tags {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-left: auto;
+}
+
+.tone-chip__tag {
+    font-family: var(--font-label);
+    font-size: 0.5rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.12rem 0.4rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--color-on-surface-variant);
+}
+
+/* ── meters ──────────────────────────────────────────────────── */
+
+.tone-chip__meters {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.tone-chip__meter {
+    display: grid;
+    grid-template-columns: 72px 1fr 28px;
+    align-items: center;
+    gap: 6px;
+}
+
+.tone-chip__meter-label {
+    font-family: var(--font-label);
+    font-size: 0.5rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-outline);
+    text-align: right;
+}
+
+.tone-chip__meter-track {
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+}
+
+.tone-chip__meter-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: var(--tone-text, var(--color-primary-fixed-dim));
+    opacity: 0.7;
+    transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.4s;
+}
+
+.tone-chip__meter-val {
+    font-family: var(--font-label);
+    font-size: 0.5rem;
+    color: var(--color-on-surface-variant);
+    text-align: right;
+}
+
+/* ── tip ─────────────────────────────────────────────────────── */
+
+.tone-chip__tip {
+    font-size: 0.62rem;
+    color: var(--color-on-surface-variant);
+    font-style: italic;
+    line-height: 1.5;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: var(--space-2);
+    margin: 0;
+}

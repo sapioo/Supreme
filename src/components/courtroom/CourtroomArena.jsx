@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useGame, useGameDispatch } from '../../context/GameContext';
 import { scoreArgument, getAIScore, getJudgeComment, getAIResponse } from '../../data/mockAI';
 import { generateAIArgument, scoreArgumentWithAI, checkNIMConnectivity } from '../../services/nimService';
+import { analyzeTone } from '../../services/tonalService';
 import { isQdrantConfigured, checkCollectionHealth, searchRelevantContext, getCaseOverview } from '../../services/qdrantService';
 import useVapi from '../../hooks/useVapi';
 import TopBar from './TopBar';
@@ -10,6 +11,7 @@ import ChatArea from './ChatArea';
 import VoiceWaveform from './VoiceWaveform';
 import ArgumentInput from './ArgumentInput';
 import TurnBanner from './TurnBanner';
+import ToneChip from './ToneChip';
 import NotificationToast from './NotificationToast';
 import './CourtroomArena.css';
 
@@ -242,6 +244,9 @@ export default function CourtroomArena() {
     );
 
     dispatch({ type: 'SUBMIT_ARGUMENT', payload: fullTranscript });
+    // Fire-and-forget tonal analysis — never blocks Vapi
+    analyzeTone({ text: fullTranscript, side: state.selectedSide, round: state.currentRound })
+      .then(result => { if (result) dispatch({ type: 'SET_TONE_RESULT', payload: result }); });
     setShowScores(false);
 
     // Score after a short delay to let AI respond first
@@ -273,50 +278,56 @@ export default function CourtroomArena() {
     }, 4000);
   }, [dispatch, state.selectedCase, state.selectedSide, state.currentRound, addNotification]);
 
+  const handleCallStart = useCallback(() => {
+    setVoiceError('');
+    setIsAiSpeaking(false);
+    liveTranscriptRef.current = '';
+    setLiveTranscript('');
+    userTranscriptRef.current = '';
+    setLiveUserTranscript('');
+    addNotification(
+      "Voice session started successfully. You can now speak your arguments.",
+      'voice',
+      3000
+    );
+  }, [addNotification]);
+
+  const handleCallEnd = useCallback(() => {
+    setIsAiSpeaking(false);
+    // Flush any remaining user speech as a complete submission
+    processAndSubmitUserTranscript();
+    // Commit any remaining AI transcript
+    const remaining = liveTranscriptRef.current.trim();
+    if (remaining) {
+      dispatch({ type: 'AI_RESPOND', payload: remaining });
+      liveTranscriptRef.current = '';
+      setLiveTranscript('');
+    }
+    addNotification(
+      "Voice session ended. You can start a new session or switch to text mode.",
+      'voice',
+      3000
+    );
+  }, [processAndSubmitUserTranscript, dispatch, addNotification]);
+
+  const handleVapiError = useCallback((err) => {
+    const errorMessage = err?.message || 'Voice connection failed.';
+    setVoiceError(errorMessage);
+    setIsAiSpeaking(false);
+    addNotification(
+      `Voice Error: ${errorMessage}. Check microphone permissions and try again, or switch to text mode.`,
+      'error',
+      8000
+    );
+  }, [addNotification]);
+
   const vapi = useVapi({
     systemPrompt: buildSystemPrompt(),
     onUserTranscript: handleUserVoiceTranscript,
     onAssistantTranscript: handleAssistantTranscript,
-    onCallStart: () => {
-      setVoiceError('');
-      setIsAiSpeaking(false);
-      liveTranscriptRef.current = '';
-      setLiveTranscript('');
-      userTranscriptRef.current = '';
-      setLiveUserTranscript('');
-      addNotification(
-        "Voice session started successfully. You can now speak your arguments.",
-        'voice',
-        3000
-      );
-    },
-    onCallEnd: () => {
-      setIsAiSpeaking(false);
-      // Flush any remaining user speech as a complete submission
-      processAndSubmitUserTranscript();
-      // Commit any remaining AI transcript
-      const remaining = liveTranscriptRef.current.trim();
-      if (remaining) {
-        dispatch({ type: 'AI_RESPOND', payload: remaining });
-        liveTranscriptRef.current = '';
-        setLiveTranscript('');
-      }
-      addNotification(
-        "Voice session ended. You can start a new session or switch to text mode.",
-        'voice',
-        3000
-      );
-    },
-    onError: (err) => {
-      const errorMessage = err?.message || 'Voice connection failed.';
-      setVoiceError(errorMessage);
-      setIsAiSpeaking(false);
-      addNotification(
-        `Voice Error: ${errorMessage}. Check microphone permissions and try again, or switch to text mode.`,
-        'error',
-        8000
-      );
-    },
+    onCallStart: handleCallStart,
+    onCallEnd: handleCallEnd,
+    onError: handleVapiError,
   });
 
   // ─── Mute/unmute user mic based on who is speaking ────────────────────────
@@ -428,6 +439,9 @@ export default function CourtroomArena() {
     );
 
     dispatch({ type: 'SUBMIT_ARGUMENT', payload: text });
+    // Fire-and-forget tonal analysis — does not await, never delays AI response
+    analyzeTone({ text, side: state.selectedSide, round: state.currentRound })
+      .then(result => { if (result) dispatch({ type: 'SET_TONE_RESULT', payload: result }); });
     setShowScores(false);
 
     const [aiResponse, aiScoreAttempt] = await Promise.all([
@@ -687,6 +701,18 @@ export default function CourtroomArena() {
       <section className="courtroom__scene">
         <aside className="courtroom__side-panel">
           <JudgeBench roundScores={state.roundScores} isVisible={showScores} />
+
+          {/* Tonal analysis — shows latest user argument tone */}
+          {state.toneResults.length > 0 && (
+            <div className="courtroom__tone-panel">
+              <div className="courtroom__tone-panel-header">
+                <div className="courtroom__tone-panel-line" />
+                <span className="courtroom__tone-panel-label">TONE ANALYSIS</span>
+                <div className="courtroom__tone-panel-line" />
+              </div>
+              <ToneChip tone={state.toneResults[state.toneResults.length - 1]} />
+            </div>
+          )}
 
           {/* Waveform — show whenever call is active, not just in voice mode */}
           {vapi.isCallActive && (

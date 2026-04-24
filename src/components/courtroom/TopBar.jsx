@@ -15,37 +15,38 @@ export default function TopBar({
 }) {
   const [time, setTime] = useState(timer);
   const hasEndedRef = useRef(false);
+  const timerKeyRef = useRef(timerKey);
 
+  // Reset when a new round starts (timerKey changes) or timer prop changes
   useEffect(() => {
+    timerKeyRef.current = timerKey;
     setTime(timer);
     hasEndedRef.current = false;
   }, [timer, timerKey]);
 
+  // Single stable interval — only restarts when isTimerRunning or timerKey changes
   useEffect(() => {
-    if (!isTimerRunning || time <= 0) {
-      return;
-    }
+    if (!isTimerRunning) return;
 
     const interval = setInterval(() => {
-      setTime((prev) => Math.max(prev - 1, 0));
+      setTime((prev) => {
+        if (prev <= 0) return 0;
+        return prev - 1;
+      });
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isTimerRunning, time]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTimerRunning, timerKey]);
 
+  // Fire onTimerEnd exactly once per round, guarded by both hasEndedRef and timerKey
   useEffect(() => {
-    if (!isTimerRunning) {
-      hasEndedRef.current = false;
-      return;
-    }
-
-    if (time > 0 || hasEndedRef.current) {
-      return;
-    }
-
+    if (!isTimerRunning || time > 0 || hasEndedRef.current) return;
+    // Extra safety: only fire if the timerKey ref still matches (not a stale closure)
+    if (timerKeyRef.current !== timerKey) return;
     hasEndedRef.current = true;
     onTimerEnd?.();
-  }, [time, isTimerRunning, onTimerEnd]);
+  }, [time, isTimerRunning, timerKey, onTimerEnd]);
 
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
