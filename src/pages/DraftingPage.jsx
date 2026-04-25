@@ -114,16 +114,15 @@ export default function DraftingPage({ onBack }) {
   const [drafts, setDrafts] = useState(initialDraftState.drafts);
   const [activeDraft, setActiveDraft] = useState(initialDraftState.activeDraft);
   const [source, setSource] = useState(initialDraftState.source);
-  const [saveState, setSaveState] = useState('idle');
   const [copyState, setCopyState] = useState('Copy Draft');
   const [mobileTab, setMobileTab] = useState('source');
   const [viewMode, setViewMode] = useState('setup');
+  const [editorLayout, setEditorLayout] = useState('split');
   const [setupTemplateId, setSetupTemplateId] = useState(draftingTemplates[0].id);
   const [setupTitle, setSetupTitle] = useState('');
   const [setupMatterType, setSetupMatterType] = useState(matterTypes[0]);
   const [setupUrgency, setSetupUrgency] = useState(urgencyLevels[0]);
   const [wizardStep, setWizardStep] = useState('template');
-  const [showEditorDetails, setShowEditorDetails] = useState(true);
   const [showRightSidebar, setShowRightSidebar] = useState(true);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
@@ -146,7 +145,6 @@ export default function DraftingPage({ onBack }) {
       if (saved) {
         setActiveDraft(saved);
         setDrafts(listDrafts());
-        setSaveState('saved');
       }
     }, 450);
 
@@ -172,8 +170,8 @@ export default function DraftingPage({ onBack }) {
     setActiveDraft(draft);
     setSource(draft.source);
     setDrafts(listDrafts());
-    setSaveState('saved');
     setMobileTab('source');
+    setEditorLayout('split');
     setViewMode('editor');
     resetEditorAssistant();
   }, [resetEditorAssistant, setupMatterType, setupTemplateId, setupTitle, setupUrgency, templateCatalog]);
@@ -181,8 +179,8 @@ export default function DraftingPage({ onBack }) {
   const handleOpenDraft = useCallback((draft) => {
     setActiveDraft(draft);
     setSource(draft.source);
-    setSaveState('saved');
     setMobileTab('source');
+    setEditorLayout('split');
     setViewMode('editor');
     resetEditorAssistant();
   }, [resetEditorAssistant]);
@@ -276,7 +274,6 @@ export default function DraftingPage({ onBack }) {
     if (!target?.proposedSource) return;
 
     setSource(target.proposedSource);
-    setSaveState('saving');
     setChatMessages((current) =>
       current.map((message) =>
         message.id === messageId
@@ -370,8 +367,12 @@ export default function DraftingPage({ onBack }) {
   }
 
   const workspaceClassName = showRightSidebar
-    ? 'drafting-workspace drafting-workspace--with-ai'
-    : 'drafting-workspace drafting-workspace--without-ai';
+    ? `drafting-workspace drafting-workspace--with-ai drafting-workspace--layout-${editorLayout}`
+    : `drafting-workspace drafting-workspace--without-ai drafting-workspace--layout-${editorLayout}`;
+
+  const showSinglePaneSwitcher = editorLayout !== 'split';
+  const hideSourceOnDesktop = editorLayout === 'preview';
+  const hidePreviewOnDesktop = editorLayout === 'source';
 
   return (
     <main className="drafting-page drafting-page--editor" id="drafting-page">
@@ -380,18 +381,15 @@ export default function DraftingPage({ onBack }) {
         onTitleChange={(value) => {
           if (!activeDraft) return;
           setActiveDraft({ ...activeDraft, title: value });
-          setSaveState('saving');
         }}
-        aiSettings={aiSettings}
-        saveState={saveState}
-        showEditorDetails={showEditorDetails}
-        onToggleDetails={() => setShowEditorDetails((c) => !c)}
         showRightSidebar={showRightSidebar}
         onToggleSidebar={() => setShowRightSidebar((c) => !c)}
         onOpenSettings={openSettings}
         onCopy={handleCopy}
         copyState={copyState}
         onBackToSetup={() => setViewMode('setup')}
+        editorLayout={editorLayout}
+        onEditorLayoutChange={setEditorLayout}
       />
 
       <MobileTabs activeTab={mobileTab} onTabChange={setMobileTab} />
@@ -412,18 +410,29 @@ export default function DraftingPage({ onBack }) {
           </div>
         )}
 
-        <div className={`drafting-pane-shell drafting-pane-shell--source ${mobileTab === 'source' ? 'drafting-pane-shell--active' : ''}`}>
+        <div
+          className={`drafting-pane-shell drafting-pane-shell--source ${mobileTab === 'source' ? 'drafting-pane-shell--active' : ''} ${hideSourceOnDesktop ? 'drafting-pane-shell--desktop-hidden' : ''}`}
+        >
           <SourcePane
             source={source}
             onChange={(value) => {
               setSource(value);
-              setSaveState('saving');
             }}
+            showViewSwitcher={showSinglePaneSwitcher}
+            activeView={editorLayout === 'preview' ? 'preview' : 'source'}
+            onViewChange={setEditorLayout}
           />
         </div>
 
-        <div className={`drafting-pane-shell drafting-pane-shell--preview ${mobileTab === 'preview' ? 'drafting-pane-shell--active' : ''}`}>
-          <PreviewPane previewBlocks={previewBlocks} />
+        <div
+          className={`drafting-pane-shell drafting-pane-shell--preview ${mobileTab === 'preview' ? 'drafting-pane-shell--active' : ''} ${hidePreviewOnDesktop ? 'drafting-pane-shell--desktop-hidden' : ''}`}
+        >
+          <PreviewPane
+            previewBlocks={previewBlocks}
+            showViewSwitcher={showSinglePaneSwitcher}
+            activeView={editorLayout === 'preview' ? 'preview' : 'source'}
+            onViewChange={setEditorLayout}
+          />
         </div>
       </section>
 

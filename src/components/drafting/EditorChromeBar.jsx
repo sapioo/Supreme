@@ -1,152 +1,142 @@
-import { Settings, FileText, PanelRight } from 'lucide-react';
+import {
+  ChevronLeft,
+  Columns2,
+  Copy,
+  Eye,
+  FileCode2,
+  PanelRightClose,
+  PanelRightOpen,
+  Settings2,
+} from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
+import { cn } from '../../lib/utils';
 
-function formatTime(iso) {
-  if (!iso) return 'Not saved';
-  return new Date(iso).toLocaleString('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
+const layoutOptions = [
+  { value: 'source', label: 'Code view', icon: FileCode2 },
+  { value: 'preview', label: 'Preview view', icon: Eye },
+  { value: 'split', label: 'Split view', icon: Columns2 },
+];
 
 export default function EditorChromeBar({
   activeDraft,
   onTitleChange,
-  aiSettings,
-  saveState,
-  showEditorDetails,
-  onToggleDetails,
   showRightSidebar,
   onToggleSidebar,
   onOpenSettings,
   onCopy,
   copyState,
   onBackToSetup,
+  editorLayout,
+  onEditorLayoutChange,
 }) {
-  const providerStatus =
-    aiSettings.apiKey && aiSettings.model ? 'Ready' : 'Needs setup';
   const currentTemplateName = activeDraft?.templateName || 'No template selected';
 
   return (
     <header className="drafting-editor-bar">
-      {/* Back button */}
-      <Button variant="outline" onClick={onBackToSetup}>
-        Setup
-      </Button>
+      <div className="drafting-editor-bar__identity">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={onBackToSetup}
+          className="drafting-editor-bar__setup"
+          aria-label="Back to setup"
+          title="Back to setup"
+        >
+          <ChevronLeft className="drafting-editor-bar__icon" />
+        </Button>
 
-      {/* Main section */}
-      <div className="drafting-editor-bar__main">
-        {/* Title row */}
-        <div className="drafting-editor-bar__title">
-          <span>
-            Draft Workspace
-          </span>
-          <Input
-            className="drafting-editor-bar__title-input"
-            value={activeDraft?.title || 'Untitled Draft'}
-            onChange={(event) => onTitleChange(event.target.value)}
-            disabled={!activeDraft}
-            aria-label="Draft title"
-          />
-        </div>
-
-        {/* Metadata chips */}
-        {showEditorDetails && (
-          <div className="drafting-editor-bar__meta">
-            <div className="drafting-editor-chip">
-              <span>
-                Provider
-              </span>
-              <strong>
-                OpenRouter
-              </strong>
+        <div className="drafting-editor-bar__main">
+          <div className="drafting-editor-bar__title-wrap">
+            <div className="drafting-editor-bar__eyebrow">
+              <span className="drafting-editor-bar__eyebrow-badge">Draft workspace</span>
+              <span className="drafting-editor-bar__eyebrow-separator" aria-hidden="true" />
+              <span className="drafting-editor-bar__eyebrow-text">{currentTemplateName}</span>
             </div>
-            <div className="drafting-editor-chip">
-              <span>
-                Model
-              </span>
-              <strong>
-                {aiSettings.model || 'Not configured'}
-              </strong>
-            </div>
-            <div className="drafting-editor-chip">
-              <span>
-                Status
-              </span>
-              <strong>
-                {providerStatus} |{' '}
-                {saveState === 'saving'
-                  ? 'Saving...'
-                  : `Saved ${formatTime(activeDraft?.updatedAt)}`}
-              </strong>
-            </div>
-            <div className="drafting-editor-chip">
-              <span>
-                Template
-              </span>
-              <strong>
-                {currentTemplateName}
-              </strong>
-            </div>
+            <Input
+              className="drafting-editor-bar__title-input"
+              value={activeDraft?.title || 'Untitled Draft'}
+              onChange={(event) => onTitleChange(event.target.value)}
+              disabled={!activeDraft}
+              aria-label="Draft title"
+            />
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Action buttons */}
       <div className="drafting-editor-bar__actions">
-        {/* Settings */}
-        <Button
-          variant="outline"
-          className="drafting-editor-bar__action"
-          onClick={onOpenSettings}
-        >
-          <Settings className="drafting-editor-bar__icon" />
-          <span className="drafting-editor-bar__action-label">Settings</span>
-        </Button>
+        <div className="drafting-editor-bar__action-group">
+          <Button
+            variant="outline"
+            size="icon"
+            className="drafting-editor-bar__action"
+            onClick={onOpenSettings}
+            aria-label="Open settings"
+            title="Open settings"
+          >
+            <Settings2 className="drafting-editor-bar__icon" />
+          </Button>
 
-        {/* Details toggle */}
-        <Button
-          variant="outline"
-          size="icon"
-          className={
-            showEditorDetails
-              ? 'drafting-editor-bar__icon-button drafting-editor-bar__icon-button--active'
-              : 'drafting-editor-bar__icon-button'
-          }
-          onClick={onToggleDetails}
-          aria-label={
-            showEditorDetails ? 'Hide draft details' : 'Show draft details'
-          }
-          title={
-            showEditorDetails ? 'Hide draft details' : 'Show draft details'
-          }
-        >
-          <FileText className="drafting-editor-bar__icon" />
-        </Button>
+          <div
+            className="drafting-editor-layout-switch"
+            role="tablist"
+            aria-label="Source and preview layout"
+          >
+            {layoutOptions.map((option) => {
+              const Icon = option.icon;
 
-        {/* AI rail toggle */}
-        <Button
-          variant="outline"
-          size="icon"
-          className={
-            showRightSidebar
-              ? 'drafting-editor-bar__icon-button drafting-editor-bar__icon-button--active'
-              : 'drafting-editor-bar__icon-button'
-          }
-          onClick={onToggleSidebar}
-          aria-label={showRightSidebar ? 'Hide AI rail' : 'Show AI rail'}
-          title={showRightSidebar ? 'Hide AI rail' : 'Show AI rail'}
-        >
-          <PanelRight className="drafting-editor-bar__icon" />
-        </Button>
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="tab"
+                  aria-selected={editorLayout === option.value}
+                  aria-label={option.label}
+                  title={option.label}
+                  className={cn(
+                    'drafting-editor-layout-switch__option',
+                    editorLayout === option.value && 'drafting-editor-layout-switch__option--active'
+                  )}
+                  onClick={() => onEditorLayoutChange(option.value)}
+                >
+                  <Icon className="drafting-editor-layout-switch__icon" />
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-        {/* Copy Draft */}
-        <Button className="drafting-editor-bar__copy" onClick={onCopy} disabled={!activeDraft}>
-          {copyState}
-        </Button>
+        <div className="drafting-editor-bar__action-group">
+          <Button
+            variant="outline"
+            size="icon"
+            className={
+              showRightSidebar
+                ? 'drafting-editor-bar__icon-button drafting-editor-bar__icon-button--active'
+                : 'drafting-editor-bar__icon-button'
+            }
+            onClick={onToggleSidebar}
+            aria-label={showRightSidebar ? 'Hide AI rail' : 'Show AI rail'}
+            title={showRightSidebar ? 'Hide AI rail' : 'Show AI rail'}
+          >
+            {showRightSidebar ? (
+              <PanelRightClose className="drafting-editor-bar__icon" />
+            ) : (
+              <PanelRightOpen className="drafting-editor-bar__icon" />
+            )}
+          </Button>
+
+          <Button
+            className="drafting-editor-bar__copy"
+            onClick={onCopy}
+            disabled={!activeDraft}
+            size="icon"
+            aria-label={copyState}
+            title={copyState}
+          >
+            <Copy className="drafting-editor-bar__icon" />
+          </Button>
+        </div>
       </div>
     </header>
   );
