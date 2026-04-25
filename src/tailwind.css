@@ -1,0 +1,23 @@
+@layer theme, base, components, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+/*
+ * Source detection — tell Tailwind v4 which files to scan for utility classes.
+ */
+@source "../src/components/ui/**/*.jsx";
+@source "../src/components/drafting/**/*.jsx";
+@source "../src/pages/DraftingPage.jsx";
+
+/*
+ * Custom theme overrides for Tailwind v4.
+ * Map the app's CSS custom properties into Tailwind's theme so that
+ * font-[var(--font-heading)] etc. resolve to font-family, not font-weight.
+ */
+@theme {
+  --font-heading: var(--font-heading);
+  --font-body: var(--font-body);
+  --font-label: var(--font-label);
+  --font-mono: var(--font-mono);
+}

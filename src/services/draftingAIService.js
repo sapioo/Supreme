@@ -1,123 +1,148 @@
-const NIM_BASE_URL = import.meta.env.DEV
-  ? '/api/nvidia/v1'
-  : 'https://integrate.api.nvidia.com/v1';
-const NIM_MODEL = 'meta/llama-3.3-70b-instruct';
+import { getDraftingAISettings } from './draftingAISettings';
 
-export const DRAFTING_EDIT_MODES = [
-  { id: 'formalize', label: 'Formalize' },
-  { id: 'shorten', label: 'Shorten' },
-  { id: 'strengthen', label: 'Strengthen Legal Tone' },
-  { id: 'notes', label: 'Convert Notes to Draft' },
-];
-
-function getNvidiaKey() {
-  return import.meta.env.VITE_NVIDIA_API_KEY || '';
-}
+const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
+const APP_TITLE = 'SUPREME Drafting Editor';
 
 function cleanModelOutput(text) {
   return String(text || '')
-    .replace(/^```(?:latex|text)?/i, '')
+    .replace(/^```(?:json|latex|text)?/i, '')
     .replace(/```$/i, '')
     .trim();
 }
 
-function fallbackRewrite({ sectionTitle, sectionText, editMode }) {
-  const text = String(sectionText || '').trim();
-  if (!text) {
-    return `The ${sectionTitle} section should set out the relevant material in clear legal prose, replacing placeholders with client-specific facts and relief.`;
-  }
-
-  if (editMode === 'shorten') {
-    return text
-      .split(/\n+/)
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .slice(0, 3)
-      .join('\n');
-  }
-
-  if (editMode === 'notes') {
-    return `It is submitted that ${text
-      .replace(/^[-*\d.\s]+/gm, '')
-      .replace(/\n+/g, ' ')
-      .trim()} The same is material for adjudication and may be relied upon in support of the present draft.`;
-  }
-
-  if (editMode === 'strengthen') {
-    return `${text}\n\nIt is further submitted that the above facts establish a clear legal basis for relief, and any contrary position would cause prejudice, uncertainty, and avoidable multiplicity of proceedings.`;
-  }
-
-  return `It is respectfully submitted that ${text
-    .replace(/\n+/g, ' ')
-    .trim()} The same is stated for the proper consideration of the competent forum.`;
+function getWindowOrigin() {
+  if (typeof window === 'undefined') return 'http://localhost';
+  return window.location.origin;
 }
 
-export async function rewriteDraftSection({
-  fullDraft,
-  sectionTitle,
-  sectionText,
-  editMode,
-}) {
-  const apiKey = getNvidiaKey();
-  if (!apiKey) {
+function normalizeAssistantContent(content) {
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    return content
+      .map((item) => {
+        if (typeof item === 'string') return item;
+        if (item?.type === 'text') return item.text || '';
+        return '';
+      })
+      .join('\n')
+      .trim();
+  }
+
+  return '';
+}
+
+function parseStructuredResponse(rawContent) {
+  const cleaned = cleanModelOutput(rawContent);
+  if (!cleaned) {
     return {
-      source: 'fallback',
-      text: fallbackRewrite({ sectionTitle, sectionText, editMode }),
+      message: 'The assistant returned an empty response.',
+      proposedSource: null,
     };
   }
 
-  const modeLabel = DRAFTING_EDIT_MODES.find((mode) => mode.id === editMode)?.label || 'Formalize';
-  const systemPrompt = `You are a senior Indian legal drafting assistant.
-Rewrite only the selected section of a legal draft.
-Return replacement text for the selected section body only.
-Do not include a section heading, markdown fence, explanation, or commentary.
-Preserve legal placeholders such as [CLIENT NAME] when facts are missing.
-Use precise legal prose suitable for Indian litigation and advisory drafting.`;
+  try {
+    const parsed = JSON.parse(cleaned);
+    return {
+      message: String(parsed?.message || '').trim() || 'The assistant returned no explanation.',
+      proposedSource: typeof parsed?.proposedSource === 'string' && parsed.proposedSource.trim()
+        ? parsed.proposedSource.trim()
+        : null,
+    };
+  } catch {
+    return {
+      message: cleaned,
+      proposedSource: null,
+    };
+  }
+}
 
-  const userPrompt = `Edit mode: ${modeLabel}
-Selected section: ${sectionTitle}
+function buildSystemPrompt() {
+  return `You are a senior Indian legal drafting assistant working inside a LaTeX drafting editor.
+You help revise, explain, and improve legal drafts while preserving valid LaTeX structure.
+When the user asks for edits or rewriting, you may return a full revised LaTeX document.
+When the user asks only a question, explanation, or drafting advice, do not propose a rewrite.
 
-Selected section body:
-${sectionText}
+Always return valid JSON with this exact shape:
+{
+  "message": "string",
+  "proposedSource": "string or null"
+}
 
-Full draft context:
-${fullDraft.slice(0, 7000)}`;
+Rules:
+- "message" must always be present and should be concise, practical, and drafting-focused.
+- "proposedSource" must be null unless you are intentionally proposing a full-document rewrite.
+- If you set "proposedSource", it must contain the complete revised LaTeX source, not a fragment or diff.
+- Never wrap JSON in markdown fences.
+- Never include commentary outside the JSON object.
+- Preserve placeholders like [CLIENT NAME] or [DATE] unless the user explicitly supplies replacements.
+- Keep the tone suitable for Indian litigation, transactional, advisory, and compliance drafting.`;
+}
+
+function buildUserPrompt({ source, messages }) {
+  const history = messages
+    .slice(-8)
+    .map((message) => `${message.role.toUpperCase()}: ${message.content}`)
+    .join('\n\n');
+
+  return `Current LaTeX source:
+${source.slice(0, 18000)}
+
+Conversation:
+${history}`;
+}
+
+export async function chatWithDraftingAI({ source, messages }) {
+  const settings = getDraftingAISettings();
+  if (!settings.apiKey || !settings.model) {
+    return {
+      source: 'config-missing',
+      message: 'OpenRouter is not configured yet. Add your API key and model in Settings to use AI chat.',
+      proposedSource: null,
+    };
+  }
 
   try {
-    const response = await fetch(`${NIM_BASE_URL}/chat/completions`, {
+    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${settings.apiKey}`,
+        'HTTP-Referer': getWindowOrigin(),
+        'X-Title': APP_TITLE,
       },
       body: JSON.stringify({
-        model: NIM_MODEL,
+        model: settings.model,
         messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
+          { role: 'system', content: buildSystemPrompt() },
+          { role: 'user', content: buildUserPrompt({ source, messages }) },
         ],
         temperature: 0.35,
         top_p: 0.9,
-        max_tokens: 650,
-        stream: false,
+        max_tokens: 1400,
       }),
-      signal: AbortSignal.timeout(30000),
+      signal: AbortSignal.timeout(45000),
     });
 
     if (!response.ok) {
-      throw new Error(`NIM API error ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(`OpenRouter API error (${response.status}): ${errorText.slice(0, 240)}`);
     }
 
     const data = await response.json();
-    const text = cleanModelOutput(data.choices?.[0]?.message?.content);
-    if (!text) throw new Error('NIM returned empty draft section.');
+    const content = normalizeAssistantContent(data?.choices?.[0]?.message?.content);
+    const parsed = parseStructuredResponse(content);
 
-    return { source: 'nim', text };
-  } catch (err) {
-    console.warn('[DraftingAI] Falling back:', err.message);
     return {
-      source: 'fallback',
-      text: fallbackRewrite({ sectionTitle, sectionText, editMode }),
+      source: 'openrouter',
+      message: parsed.message,
+      proposedSource: parsed.proposedSource,
+    };
+  } catch (error) {
+    console.warn('[DraftingAI] OpenRouter request failed:', error.message);
+    return {
+      source: 'error',
+      message: `OpenRouter request failed. ${error.message}`,
+      proposedSource: null,
     };
   }
 }
