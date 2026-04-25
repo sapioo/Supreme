@@ -1,11 +1,13 @@
 import { useCallback } from 'react';
 import { useGame, useGameDispatch } from './context/GameContext';
 import ChooseSide from './components/landing/ChooseSide';
+import CustomCaseBuilder from './components/landing/CustomCaseBuilder';
 import GavelLoader from './components/common/GavelLoader';
 import CourtroomArena from './components/courtroom/CourtroomArena';
 import VerdictScreen from './components/verdict/VerdictScreen';
 import StartPage from './pages/StartPage';
 import LandingPage from './pages/LandingPage';
+import FirmPage from './pages/FirmPage';
 import './App.css';
 
 export default function App() {
@@ -28,6 +30,14 @@ export default function App() {
     dispatch({ type: 'SET_PAGE', payload: 'landing' });
   }, [dispatch]);
 
+  const handleGoCustomCase = useCallback(() => {
+    dispatch({ type: 'SET_PAGE', payload: 'customCase' });
+  }, [dispatch]);
+
+  const handleGoFirm = useCallback(() => {
+    dispatch({ type: 'SET_PAGE', payload: 'firm' });
+  }, [dispatch]);
+
   const handleLoadingComplete = useCallback(() => {
     dispatch({ type: 'START_GAME' });
   }, [dispatch]);
@@ -44,7 +54,21 @@ export default function App() {
       {/* Page: Landing */}
       {state.currentPage === 'landing' && (
         <div className="app__page app__page--landing">
-          <LandingPage onSelectCase={handleSelectCase} />
+          <LandingPage onSelectCase={handleSelectCase} onCustomCase={handleGoCustomCase} onFirm={handleGoFirm} />
+        </div>
+      )}
+
+      {/* Page: FIRM — Lawyer Finder */}
+      {state.currentPage === 'firm' && (
+        <div className="app__page app__page--firm">
+          <FirmPage onBack={handleBackToCases} />
+        </div>
+      )}
+
+      {/* Page: Custom Case Builder */}
+      {state.currentPage === 'customCase' && (
+        <div className="app__page app__page--custom-case">
+          <CustomCaseBuilder onSelectCase={handleSelectCase} onBack={handleBackToCases} />
         </div>
       )}
 

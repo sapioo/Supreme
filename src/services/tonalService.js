@@ -1,20 +1,17 @@
 /**
  * tonalService.js — Tonal analysis of user arguments
  *
- * Provider: 'nim' (swap to 'gemini' when ready — see bottom of file)
+ * Provider: Gemini (OpenAI-compatible endpoint)
  * Returns a structured tone profile for a given argument text.
  */
 
-const PROVIDER = 'nim';
+const GEMINI_BASE_URL = import.meta.env.DEV
+    ? '/api/gemini/v1beta/openai'
+    : 'https://generativelanguage.googleapis.com/v1beta/openai';
+const GEMINI_MODEL = 'gemini-1.5-flash';
 
-// ── NIM setup (reuses same proxy config as nimService.js) ──────────────────
-const NIM_BASE_URL = import.meta.env.DEV
-    ? '/api/nvidia/v1'
-    : 'https://integrate.api.nvidia.com/v1';
-const NIM_MODEL = 'meta/llama-3.3-70b-instruct';
-
-function getNvidiaKey() {
-    return import.meta.env.VITE_NVIDIA_API_KEY || '';
+function getGeminiKey() {
+    return import.meta.env.VITE_GEMINI_API_KEY || '';
 }
 
 // ── prompt ─────────────────────────────────────────────────────────────────
@@ -39,19 +36,19 @@ Return ONLY valid JSON (no markdown, no explanation) with exactly these keys:
 }`;
 }
 
-// ── NIM call ────────────────────────────────────────────────────────────────
-async function callNIM(text, side, round) {
-    const apiKey = getNvidiaKey();
+// ── Gemini call ─────────────────────────────────────────────────────────────
+async function callGemini(text, side, round) {
+    const apiKey = getGeminiKey();
     if (!apiKey) return null;
 
-    const res = await fetch(`${NIM_BASE_URL}/chat/completions`, {
+    const res = await fetch(`${GEMINI_BASE_URL}/chat/completions`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-            model: NIM_MODEL,
+            model: GEMINI_MODEL,
             messages: [{ role: 'user', content: buildPrompt(text, side, round) }],
             max_tokens: 150,
             temperature: 0.3,
@@ -69,16 +66,6 @@ async function callNIM(text, side, round) {
     return JSON.parse(clean);
 }
 
-// ── Gemini stub (uncomment and fill when switching) ─────────────────────────
-// async function callGemini(text, side, round) {
-//   const { GoogleGenerativeAI } = await import('@google/generative-ai');
-//   const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
-//   const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-//   const result = await model.generateContent(buildPrompt(text, side, round));
-//   const raw = result.response.text().replace(/```json|```/g, '').trim();
-//   return JSON.parse(raw);
-// }
-
 // ── Public API ──────────────────────────────────────────────────────────────
 /**
  * Analyse the tone of a user argument.
@@ -90,9 +77,7 @@ async function callNIM(text, side, round) {
 export async function analyzeTone({ text, side, round }) {
     if (!text || text.trim().length < 10) return null;
     try {
-        const caller = PROVIDER === 'nim' ? callNIM : null; // swap when Gemini ready
-        if (!caller) return null;
-        const result = await caller(text, side, round);
+        const result = await callGemini(text, side, round);
         if (!result || typeof result.dominant !== 'string') return null;
         return { ...result, side, round };
     } catch (err) {

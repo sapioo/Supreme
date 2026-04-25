@@ -1,19 +1,18 @@
 /**
- * nimService.js — NVIDIA NIM LLM Service
+ * nimService.js — LLM Service (now routed through Google Gemini)
  *
- * Uses NVIDIA's NIM API (OpenAI-compatible) to generate real AI legal arguments
- * in response to the user's submissions. Replaces the static mockAI responses
- * for text mode.
+ * Uses Gemini's OpenAI-compatible API endpoint so the fetch logic stays identical.
+ * Swap VITE_GEMINI_API_KEY in your .env to enable.
  */
 
-// In dev, use the Vite proxy to avoid CORS. In production, call directly.
-const NIM_BASE_URL = import.meta.env.DEV
-  ? '/api/nvidia/v1'
-  : 'https://integrate.api.nvidia.com/v1';
-const NIM_MODEL = 'meta/llama-3.3-70b-instruct';
+// In dev, use the Vite proxy to avoid CORS. In production, call Gemini directly.
+const GEMINI_BASE_URL = import.meta.env.DEV
+  ? '/api/gemini/v1beta/openai'
+  : 'https://generativelanguage.googleapis.com/v1beta/openai';
+const GEMINI_MODEL = 'gemini-1.5-flash';
 
-function getNvidiaKey() {
-  return import.meta.env.VITE_NVIDIA_API_KEY || '';
+function getGeminiKey() {
+  return import.meta.env.VITE_GEMINI_API_KEY || '';
 }
 
 /**
@@ -21,14 +20,14 @@ function getNvidiaKey() {
  * Returns true if the API responds, false otherwise.
  */
 export async function checkNIMConnectivity() {
-  const apiKey = getNvidiaKey();
+  const apiKey = getGeminiKey();
   if (!apiKey) return false;
   try {
-    const res = await fetch(`${NIM_BASE_URL}/chat/completions`, {
+    const res = await fetch(`${GEMINI_BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
-        model: NIM_MODEL,
+        model: GEMINI_MODEL,
         messages: [{ role: 'user', content: 'Say OK' }],
         max_tokens: 5,
         stream: false,
@@ -36,14 +35,14 @@ export async function checkNIMConnectivity() {
       signal: AbortSignal.timeout(10000),
     });
     if (res.ok) {
-      console.log('[NIM] ✓ Connected to NVIDIA NIM');
+      console.log('[Gemini] ✓ Connected to Google Gemini');
       return true;
     }
     const err = await res.text().catch(() => '');
-    console.warn('[NIM] API responded with', res.status, err.slice(0, 100));
+    console.warn('[Gemini] API responded with', res.status, err.slice(0, 100));
     return false;
   } catch (e) {
-    console.warn('[NIM] Not reachable:', e.message);
+    console.warn('[Gemini] Not reachable:', e.message);
     return false;
   }
 }
@@ -63,9 +62,9 @@ export async function checkNIMConnectivity() {
  */
 // Maps difficulty to max_tokens for AI responses
 const DIFFICULTY_TOKENS = {
-  easy:   60,    // 1-2 short sentences
+  easy: 60,    // 1-2 short sentences
   medium: 100,   // 2-3 sentences max
-  hard:   180,   // short paragraph with one citation
+  hard: 180,   // short paragraph with one citation
 };
 
 export async function generateAIArgument({
@@ -78,9 +77,9 @@ export async function generateAIArgument({
   caseContext = '',
   conversationHistory = [],
 }) {
-  const apiKey = getNvidiaKey();
+  const apiKey = getGeminiKey();
   if (!apiKey) {
-    throw new Error('[NIM] NVIDIA API key not configured.');
+    throw new Error('[Gemini] API key not configured.');
   }
 
   const aiParty = caseData[aiSide];
@@ -91,9 +90,9 @@ export async function generateAIArgument({
 
   // Difficulty-specific instruction
   const lengthInstruction = {
-    easy:   'Respond in exactly 1-2 short sentences. Stop after the second sentence. End on a complete sentence.',
+    easy: 'Respond in exactly 1-2 short sentences. Stop after the second sentence. End on a complete sentence.',
     medium: 'Respond in exactly 2-3 short sentences. Stop after the third sentence. End on a complete sentence.',
-    hard:   'Respond in 3-4 sentences with one constitutional article cited. End on a complete sentence.',
+    hard: 'Respond in 3-4 sentences with one constitutional article cited. End on a complete sentence.',
   }[difficulty] ?? 'Respond in exactly 2-3 short sentences. End on a complete sentence.';
 
   // Build the system prompt
@@ -141,22 +140,21 @@ STRICT RULES:
     content: userArgument,
   });
 
-  const response = await fetch(`${NIM_BASE_URL}/chat/completions`, {
+  const response = await fetch(`${GEMINI_BASE_URL}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: NIM_MODEL,
+      model: GEMINI_MODEL,
       messages,
       temperature: 0.7,
       top_p: 0.9,
       max_tokens: maxTokens,
-      stop: ['\n\n', '---'],   // stop at paragraph break
       stream: false,
     }),
-    signal: AbortSignal.timeout(30000), // 30s timeout
+    signal: AbortSignal.timeout(30000),
   });
 
   if (!response.ok) {
@@ -168,7 +166,7 @@ STRICT RULES:
   const content = data.choices?.[0]?.message?.content;
 
   if (!content) {
-    throw new Error('[NIM] Empty response from API.');
+    throw new Error('[Gemini] Empty response from API.');
   }
 
   return content.trim();
@@ -186,7 +184,7 @@ STRICT RULES:
  * @returns {Promise<Object>} - { legalReasoning, useOfPrecedent, persuasiveness, constitutionalValidity }
  */
 export async function scoreArgumentWithAI({ userArgument, caseData, side, round }) {
-  const apiKey = getNvidiaKey();
+  const apiKey = getGeminiKey();
   if (!apiKey) return null;
 
   const systemPrompt = `You are a Supreme Court judge evaluating a legal argument in a courtroom simulation. 
@@ -203,14 +201,14 @@ Scoring guidelines:
 Be fair but critical. A short generic argument should score 20-40. A detailed argument with specific citations should score 60-85. An exceptional argument with precise case law and constitutional analysis can score 85-100.`;
 
   try {
-    const response = await fetch(`${NIM_BASE_URL}/chat/completions`, {
+    const response = await fetch(`${GEMINI_BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: NIM_MODEL,
+        model: GEMINI_MODEL,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `Case: ${caseData.shortName}\nSide: ${side}\nRound: ${round}\n\nArgument to score:\n${userArgument}` },
@@ -246,4 +244,76 @@ Be fair but critical. A short generic argument should score 20-40. A detailed ar
   }
 }
 
-export default { generateAIArgument, scoreArgumentWithAI };
+/**
+ * Rank the top 6 Indian lawyers/advocates best suited for a described legal case.
+ *
+ * @param {string} caseSummary - User's description of the case
+ * @returns {Promise<Array>} - Array of 6 { rank, name, specialty, court, rationale }
+ */
+export async function rankLawyersForCase(caseSummary) {
+  const apiKey = getGeminiKey();
+  if (!apiKey) throw new Error('[Gemini] API key not configured.');
+
+  const systemPrompt = `You are a senior Indian legal directory expert. Given a case description, identify the 6 best Indian advocates or senior counsels (real or realistic archetypes) most suited to argue this case.
+
+Respond ONLY with a valid JSON array of exactly 6 objects in this format, no other text:
+[
+  {
+    "rank": 1,
+    "name": "Full Name",
+    "designation": "Senior Advocate / Supreme Court of India",
+    "specialties": ["Constitutional Law", "Criminal Law"],
+    "court": "Supreme Court of India",
+    "rationale": "2-3 sentence explanation of why this lawyer is the best fit for this case, referencing their expertise and past landmark cases."
+  }
+]
+
+Guidelines:
+- Rank 1 is the most recommended
+- Use well-known real Indian advocates as inspiration (e.g. Harish Salve, Mukul Rohatgi, Kapil Sibal, Indira Jaising, Menaka Guruswamy, Abhishek Manu Singhvi, etc.) or realistic archetypes
+- Specialties should be 2-4 specific legal domains relevant to the case
+- Rationale must directly reference how their expertise fits the described case
+- Courts: Supreme Court of India, High Courts, National Company Law Tribunal, etc.
+- Be specific, credible, and directly relevant to the case summary provided`;
+
+  const response = await fetch(`${GEMINI_BASE_URL}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: GEMINI_MODEL,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Case description:\n${caseSummary}` },
+      ],
+      temperature: 0.6,
+      max_tokens: 1200,
+      stream: false,
+    }),
+    signal: AbortSignal.timeout(40000),
+  });
+
+  if (!response.ok) {
+    const errBody = await response.text().catch(() => '');
+    throw new Error(`Gemini API error (${response.status}): ${errBody.slice(0, 200)}`);
+  }
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content?.trim();
+  if (!content) throw new Error('[NIM] Empty response from API.');
+
+  // Extract JSON array from response
+  const jsonMatch = content.match(/\[[\s\S]*\]/);
+  if (!jsonMatch) throw new Error('[NIM] Could not parse lawyer list from response.');
+
+  const lawyers = JSON.parse(jsonMatch[0]);
+  if (!Array.isArray(lawyers) || lawyers.length === 0) {
+    throw new Error('[NIM] Invalid lawyer list format.');
+  }
+
+  return lawyers.slice(0, 6);
+}
+
+export default { generateAIArgument, scoreArgumentWithAI, rankLawyersForCase };

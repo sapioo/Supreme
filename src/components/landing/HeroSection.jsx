@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import heroImage from '../../assets/hero.png';
 import './HeroSection.css';
 
-export default function HeroSection({ onExplore, onArchive }) {
+export default function HeroSection({ onExplore, onArchive, onCustomCase, onFirm }) {
   const [reveal, setReveal] = useState(false);
 
   useEffect(() => {
@@ -61,11 +61,20 @@ export default function HeroSection({ onExplore, onArchive }) {
         </p>
 
         <div className="hero__actions">
-          <button className="hero__cta hero__cta--primary" onClick={onExplore} id="explore-cases-btn">
-            Select a Case
-          </button>
-          <button className="hero__cta hero__cta--ghost" onClick={onArchive}>
-            My Sessions
+          <div className="hero__actions-row">
+            <button className="hero__cta hero__cta--primary" onClick={onExplore} id="explore-cases-btn">
+              Select a Case
+            </button>
+            <button className="hero__cta hero__cta--firm" onClick={onFirm} id="firm-btn">
+              FIRM
+            </button>
+            <button className="hero__cta hero__cta--ghost" onClick={onArchive}>
+              My Sessions
+            </button>
+          </div>
+          <button className="hero__cta hero__cta--custom" onClick={onCustomCase} id="custom-case-btn">
+            <span className="hero__cta-icon">✦</span>
+            Build Your Own Case
           </button>
         </div>
       </div>

@@ -197,8 +197,17 @@ export default function CourtroomArena() {
       prompt += `\n\nRELEVANT CONTEXT FOR THIS ROUND:\n${roundContext}`;
     }
 
+    // Inject prior rounds so AI continues the case rather than restarting
+    const priorArgs = state.arguments.filter(a => a.round < state.currentRound);
+    if (priorArgs.length > 0) {
+      const history = priorArgs.map(a =>
+        `Round ${a.round} — ${a.side === 'user' ? 'Opposing Counsel' : 'You'}: ${a.text}`
+      ).join('\n');
+      prompt += `\n\nPREVIOUS ROUNDS (do NOT repeat these — build upon them):\n${history}`;
+    }
+
     return prompt;
-  }, [state.selectedCase, state.selectedSide, state.currentRound, state.totalRounds, state.caseContext, aiSide, roundContext]);
+  }, [state.selectedCase, state.selectedSide, state.currentRound, state.totalRounds, state.caseContext, state.arguments, aiSide, roundContext]);
 
   // ─── Vapi callbacks ────────────────────────────────────────────────────────
 
@@ -439,33 +448,35 @@ export default function CourtroomArena() {
     );
 
     dispatch({ type: 'SUBMIT_ARGUMENT', payload: text });
-    // Fire-and-forget tonal analysis — does not await, never delays AI response
-    analyzeTone({ text, side: state.selectedSide, round: state.currentRound })
-      .then(result => { if (result) dispatch({ type: 'SET_TONE_RESULT', payload: result }); });
+    // Defer tonal analysis by 2s so it never fires concurrently with generation or scoring
+    setTimeout(() => {
+      analyzeTone({ text, side: state.selectedSide, round: state.currentRound })
+        .then(result => { if (result) dispatch({ type: 'SET_TONE_RESULT', payload: result }); });
+    }, 2000);
     setShowScores(false);
 
-    const [aiResponse, aiScoreAttempt] = await Promise.all([
-      getAIResponseText(text),
-      scoreArgumentWithAI({
-        userArgument: text,
-        caseData: state.selectedCase,
-        side: state.selectedSide,
-        round: state.currentRound,
-      }),
-    ]);
-
-    // Ensure aiResponse is always a string — never let an object reach the reducer
+    // 1. Get AI argument first (most important call)
+    const aiResponse = await getAIResponseText(text);
     const aiText = typeof aiResponse === 'string' ? aiResponse : String(aiResponse ?? '');
 
-    // Item 2 — 500ms "thinking" pause before AI response appears
+    // 2. Small thinking pause before AI response appears
     await new Promise(r => setTimeout(r, 500));
     dispatch({ type: 'AI_RESPOND', payload: aiText });
+
+    // 3. Score after a 1.5s gap so it never overlaps with generation
+    await new Promise(r => setTimeout(r, 1500));
+    const aiScoreAttempt = await scoreArgumentWithAI({
+      userArgument: text,
+      caseData: state.selectedCase,
+      side: state.selectedSide,
+      round: state.currentRound,
+    });
 
     const userScore = aiScoreAttempt || scoreArgument(text, state.selectedCase, state.selectedSide, state.currentRound);
     const aiScore = getAIScore(state.currentRound);
     const judgeComment = getJudgeComment(userScore, aiScore);
 
-    // Item 3 — 800ms deliberation delay before Judge reveals scores
+    // 4. 800ms deliberation delay before Judge reveals scores
     await new Promise(r => setTimeout(r, 800));
     dispatch({ type: 'SCORE_ROUND', payload: { userScore, aiScore, judgeComment } });
     setShowScores(true);
