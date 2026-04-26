@@ -14,38 +14,29 @@ export default function TopBar({
   onEndCase,
 }) {
   const [time, setTime] = useState(timer);
-  const hasEndedRef = useRef(false);
+  const firedKeyRef = useRef(null); // tracks which timerKey has already fired onTimerEnd
 
+  // Sync local time whenever key or timer prop changes
   useEffect(() => {
     setTime(timer);
-    hasEndedRef.current = false;
   }, [timer, timerKey]);
 
+  // Interval — stable per (timerKey × isTimerRunning)
   useEffect(() => {
-    if (!isTimerRunning || time <= 0) {
-      return;
-    }
-
+    if (!isTimerRunning) return;
     const interval = setInterval(() => {
-      setTime((prev) => Math.max(prev - 1, 0));
+      setTime((prev) => (prev <= 1 ? 0 : prev - 1));
     }, 1000);
-
     return () => clearInterval(interval);
-  }, [isTimerRunning, time]);
+  }, [isTimerRunning, timerKey]);
 
+  // onTimerEnd — fires exactly once per unique timerKey
   useEffect(() => {
-    if (!isTimerRunning) {
-      hasEndedRef.current = false;
-      return;
-    }
-
-    if (time > 0 || hasEndedRef.current) {
-      return;
-    }
-
-    hasEndedRef.current = true;
+    if (!isTimerRunning || time > 0) return;
+    if (firedKeyRef.current === timerKey) return;
+    firedKeyRef.current = timerKey;
     onTimerEnd?.();
-  }, [time, isTimerRunning, onTimerEnd]);
+  }, [time, isTimerRunning, timerKey, onTimerEnd]);
 
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);

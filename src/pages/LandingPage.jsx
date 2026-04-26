@@ -1,13 +1,17 @@
 import { useRef, useCallback, useState } from 'react';
+import HeroSection from '../components/landing/HeroSection';
 import CaseGrid from '../components/landing/CaseGrid';
-import CustomCaseBuilder from '../components/landing/CustomCaseBuilder';
 import ArchiveSection from '../components/landing/ArchiveSection';
 import './LandingPage.css';
 
-export default function LandingPage({ onSelectCase, onBackHome }) {
+export default function LandingPage({ onSelectCase, onBackHome, onCustomCase, onFirm }) {
   const caseGridRef = useRef(null);
   const archiveRef = useRef(null);
   const [showArchive, setShowArchive] = useState(false);
+
+  const handleExplore = useCallback(() => {
+    caseGridRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
 
   const handleBrowseArchive = useCallback(() => {
     setShowArchive(true);
@@ -18,6 +22,7 @@ export default function LandingPage({ onSelectCase, onBackHome }) {
 
   return (
     <div className="landing-page" id="landing-page">
+      <HeroSection onExplore={handleExplore} onArchive={handleBrowseArchive} onCustomCase={onCustomCase} onFirm={onFirm} />
       <section className="landing-page__cases" ref={caseGridRef}>
         <div className="landing-page__toolbar">
           <button className="landing-page__toolbar-back" onClick={onBackHome}>
@@ -38,9 +43,6 @@ export default function LandingPage({ onSelectCase, onBackHome }) {
           </p>
         </div>
         <CaseGrid onSelectCase={onSelectCase} />
-
-        {/* Custom case builder — below the premade cases */}
-        <CustomCaseBuilder onSelectCase={onSelectCase} />
 
         {/* Archive section — below the case grid */}
         <div className="landing-page__archive-head" ref={archiveRef}>

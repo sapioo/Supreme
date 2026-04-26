@@ -1,16 +1,72 @@
-import { useRef, useEffect } from 'react';
-import ArgumentBubble from './ArgumentBubble';
+import { useEffect, useRef, useState } from 'react';
 import './ChatArea.css';
 
-export default function ChatArea({ arguments: args, isAiTyping, isAiSpeaking, liveTranscript, liveUserTranscript, currentRound, caseName }) {
-  const chatEndRef = useRef(null);
+function Panel({ side, label, text, isLive, isTyping, isAiSpeaking, currentRound }) {
+  const isUser = side === 'user';
+  const isEmpty = !text && !isTyping && !isLive;
 
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [args, isAiTyping, liveTranscript, liveUserTranscript]);
+  return (
+    <div className={`split-panel split-panel--${side}`}>
+      {/* Column header */}
+      <div className="split-panel__header">
+        <span className="split-panel__dot" />
+        <span className="split-panel__label">{label}</span>
+        <span className="split-panel__round">Round {currentRound}</span>
+      </div>
+
+      {/* Divider */}
+      <div className="split-panel__divider" />
+
+      {/* Content */}
+      <div className="split-panel__body">
+        {isEmpty && (
+          <p className="split-panel__empty">
+            {isUser ? 'Awaiting your argument…' : 'Awaiting opposing counsel…'}
+          </p>
+        )}
+
+        {isTyping && !isLive && (
+          <div className="split-panel__typing">
+            <span />
+            <span />
+            <span />
+          </div>
+        )}
+
+        {(text || isLive) && (
+          <p className="split-panel__text">
+            {text}
+            {isLive && <span className="split-panel__cursor" />}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function ChatArea({
+  arguments: args,
+  isAiTyping,
+  isAiSpeaking,
+  liveTranscript,
+  liveUserTranscript,
+  currentRound,
+  caseName,
+}) {
+  // Only show arguments from the current round
+  const roundArgs = args.filter(a => a.round === currentRound);
+  const userArg = roundArgs.find(a => a.side === 'user');
+  const aiArg = roundArgs.find(a => a.side === 'ai');
+
+  const userText = liveUserTranscript || userArg?.text || '';
+  const aiText = liveTranscript || aiArg?.text || '';
+
+  const isUserLive = !!liveUserTranscript;
+  const isAiLive = !!liveTranscript;
 
   return (
     <div className="chat-area" id="chat-area">
+      {/* Case name header */}
       <div className="chat-area__court-header">
         <div className="chat-area__court-line" />
         <span className="chat-area__court-text">
@@ -19,57 +75,29 @@ export default function ChatArea({ arguments: args, isAiTyping, isAiSpeaking, li
         <div className="chat-area__court-line" />
       </div>
 
-      <div className="chat-area__messages">
-        {args.length === 0 && !isAiTyping && !liveTranscript && !liveUserTranscript && (
-          <div className="chat-area__empty">
-            <span className="chat-area__empty-icon">⚖</span>
-            <p className="chat-area__empty-text">
-              The Court is in session. Present your opening argument.
-            </p>
-          </div>
-        )}
+      {/* Split panels */}
+      <div className="chat-area__split">
+        <Panel
+          side="user"
+          label="Your Submission"
+          text={userText}
+          isLive={isUserLive}
+          isTyping={false}
+          currentRound={currentRound}
+        />
 
-        {args.map((arg, index) => (
-          <ArgumentBubble
-            key={index}
-            side={arg.side}
-            text={arg.text}
-            round={arg.round}
-            currentRound={currentRound}
-          />
-        ))}
+        {/* Centre divider */}
+        <div className="chat-area__split-sep" />
 
-        {/* Live accumulating transcript while AI speaks — single bubble that grows */}
-        {liveTranscript && (
-          <ArgumentBubble
-            side="ai"
-            text={liveTranscript}
-            round={currentRound}
-            isLive={true}
-          />
-        )}
-
-        {/* Live accumulating user transcript while user speaks — single bubble */}
-        {liveUserTranscript && (
-          <ArgumentBubble
-            side="user"
-            text={liveUserTranscript}
-            round={currentRound}
-            isLive={true}
-          />
-        )}
-
-        {/* Typing indicator when waiting for text-mode AI response */}
-        {isAiTyping && !liveTranscript && (
-          <ArgumentBubble
-            side="ai"
-            text=""
-            round={currentRound}
-            isTyping={true}
-          />
-        )}
-
-        <div ref={chatEndRef} />
+        <Panel
+          side="ai"
+          label="Opposing Counsel"
+          text={aiText}
+          isLive={isAiLive}
+          isTyping={isAiTyping && !liveTranscript}
+          isAiSpeaking={isAiSpeaking}
+          currentRound={currentRound}
+        />
       </div>
     </div>
   );

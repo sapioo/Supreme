@@ -26,7 +26,7 @@ export default function ArgumentInput({
   const [text, setText] = useState('');
   const textareaRef = useRef(null);
   const charCount = text.length;
-  const wordCount  = text.trim() ? text.trim().split(/\s+/).length : 0;
+  const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
 
   useEffect(() => {
     if (!disabled && !isVoiceMode && textareaRef.current) {
@@ -54,14 +54,14 @@ export default function ArgumentInput({
 
   // Status message for voice mode with enhanced feedback
   const getVoiceStatus = () => {
-    if (connectionStatus === 'connecting')          return 'Connecting to courtroom...';
-    if (connectionStatus === 'error')               return 'Connection error — check microphone permissions and try again';
-    if (isAiSpeaking)                               return 'Your microphone is muted while opposing counsel speaks';
+    if (connectionStatus === 'connecting') return 'Connecting to courtroom...';
+    if (connectionStatus === 'error') return 'Connection error — check microphone permissions and try again';
+    if (isAiSpeaking) return 'Your microphone is muted while opposing counsel speaks';
     if (connectionStatus === 'connected' && isUserSpeaking) return 'Recording your argument...';
     if (connectionStatus === 'connected' && isMuted) return 'Microphone muted — unmute to speak';
-    if (connectionStatus === 'connected')           return 'Listening — speak when ready';
-    if (!canStartVoice)                             return 'Preparing case context...';
-    if (isCallActive)                               return 'Voice session active — ready to record';
+    if (connectionStatus === 'connected') return 'Listening — speak when ready';
+    if (!canStartVoice) return 'Preparing case context...';
+    if (isCallActive) return 'Voice session active — ready to record';
     return 'Press microphone to begin voice session';
   };
 
@@ -120,11 +120,11 @@ export default function ArgumentInput({
           <button
             className={[
               'arg-input__mic-btn',
-              isCallActive                              ? 'arg-input__mic-btn--active'     : '',
-              isUserSpeaking                            ? 'arg-input__mic-btn--speaking'   : '',
-              connectionStatus === 'connecting'         ? 'arg-input__mic-btn--connecting' : '',
-              micBlocked && isCallActive                ? 'arg-input__mic-btn--ai-speaking': '',
-              !isCallActive && !canStartVoice           ? 'arg-input__mic-btn--blocked'    : '',
+              isCallActive ? 'arg-input__mic-btn--active' : '',
+              isUserSpeaking ? 'arg-input__mic-btn--speaking' : '',
+              connectionStatus === 'connecting' ? 'arg-input__mic-btn--connecting' : '',
+              micBlocked && isCallActive ? 'arg-input__mic-btn--ai-speaking' : '',
+              !isCallActive && !canStartVoice ? 'arg-input__mic-btn--blocked' : '',
             ].join(' ')}
             onClick={isCallActive ? onStopVoice : onStartVoice}
             disabled={
@@ -153,9 +153,9 @@ export default function ArgumentInput({
               )}
               <span className="arg-input__mic-icon">
                 {connectionStatus === 'connecting' ? '⟳'
-                  : isAiSpeaking && isCallActive   ? '🔇'
-                  : isCallActive                   ? '⬤'
-                  : '🎙'}
+                  : isAiSpeaking && isCallActive ? '🔇'
+                    : isCallActive ? '⬤'
+                      : '🎙'}
               </span>
             </div>
           </button>
@@ -167,7 +167,7 @@ export default function ArgumentInput({
               connectionStatus === 'connected' && !isAiSpeaking ? 'arg-input__voice-status-dot--live' : '',
               connectionStatus === 'connecting' ? 'arg-input__voice-status-dot--connecting' : '',
               connectionStatus === 'error' ? 'arg-input__voice-status-dot--error' : '',
-              isAiSpeaking                  ? 'arg-input__voice-status-dot--ai'   : '',
+              isAiSpeaking ? 'arg-input__voice-status-dot--ai' : '',
             ].join(' ')} />
             <span className={`arg-input__voice-status-text ${isAiSpeaking ? 'arg-input__voice-status-text--ai' : ''} ${connectionStatus === 'error' ? 'arg-input__voice-status-text--error' : ''}`}>
               {getVoiceStatus()}
@@ -251,7 +251,7 @@ export default function ArgumentInput({
             disabled={text.trim().length < 20 || disabled}
             id="submit-argument-btn"
           >
-            <span className="arg-input__submit-icon">🔨</span>
+
             <span className="arg-input__submit-text">
               {isLastRound ? 'Final Submission' : 'Submit Argument'}
             </span>

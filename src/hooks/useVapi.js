@@ -172,7 +172,6 @@ export default function useVapi({
         provider: 'openai',
         model: 'gpt-4o-mini',
         messages: [{ role: 'system', content: prompt || 'You are an AI legal counsel in a courtroom debate simulation.' }],
-        // Hard cap on response length — keeps AI answers short so user has time to speak
         maxTokens: 120,
         temperature: 0.7,
       },
@@ -181,10 +180,9 @@ export default function useVapi({
         provider: 'deepgram',
         model: 'nova-2',
         language: 'en',
-        endpointing: 2500,
+        endpointing: 500,
       },
       interruptionsEnabled: false,
-      // Short first message — don't waste the user's turn time
       firstMessage: "My Lords, I am ready.",
     };
 
@@ -192,7 +190,6 @@ export default function useVapi({
       if (assistantId && assistantId !== 'your-vapi-assistant-id-here') {
         console.log('[Vapi] Starting with assistant ID + overrides');
         await vapi.start(assistantId, {
-          // Override everything that controls response length
           model: inlineConfig.model,
           transcriber: inlineConfig.transcriber,
           interruptionsEnabled: false,

@@ -1,12 +1,67 @@
 /* ─── Custom Case Builder ────────────────────────────────────────────────────── */
 
 .ccb {
-    margin-top: var(--space-10);
+    margin-top: 0;
     border-radius: var(--radius-md);
     overflow: hidden;
     border: 1px solid rgba(233, 193, 118, 0.14);
     background: var(--color-surface-container-low);
 }
+
+/* Page mode header */
+.ccb__page-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-6) var(--space-6) var(--space-4);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(233, 193, 118, 0.04);
+}
+
+.ccb__back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    background: none;
+    border: none;
+    color: var(--color-outline);
+    font-family: var(--font-label);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.2s ease;
+    width: fit-content;
+}
+
+.ccb__back-btn:hover {
+    color: var(--color-secondary);
+}
+
+.ccb__page-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+}
+
+.ccb__page-title {
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    color: var(--color-on-surface);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
+.ccb__page-sub {
+    font-family: var(--font-label);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--color-outline);
+    margin-left: auto;
+}
+
 
 /* Toggle button */
 .ccb__toggle {

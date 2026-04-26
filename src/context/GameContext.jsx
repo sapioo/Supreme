@@ -15,6 +15,7 @@ const initialState = {
   totalRounds: 5,
   arguments: [],              // { side: 'user'|'ai', text, round }
   roundScores: [],            // { round, userScore: {...}, aiScore: {...}, judgeComment }
+  toneResults: [],            // { round, side, dominant, confidence, formality, emotionality, tags, tip }
   timer: 120,
   isAiTyping: false,
   verdict: null,
@@ -52,6 +53,7 @@ function gameReducer(state, action) {
         currentRound: 1,
         arguments: [],
         roundScores: [],
+        toneResults: [],
         timer: 120,
         verdict: null,
       };
@@ -138,10 +140,14 @@ function gameReducer(state, action) {
         isLoadingContext: action.payload,
       };
 
-    case 'RESET':
+    case 'SET_TONE_RESULT':
       return {
-        ...initialState,
+        ...state,
+        toneResults: [...state.toneResults, action.payload],
       };
+
+    case 'RESET':
+      return { ...initialState };
 
     default:
       throw new Error(`Unknown action: ${action.type}`);

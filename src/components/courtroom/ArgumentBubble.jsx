@@ -2,7 +2,6 @@ import './ArgumentBubble.css';
 
 export default function ArgumentBubble({ side, text, round, isTyping, isSpeaking, isLive, currentRound }) {
   const isUser = side === 'user';
-  // Stamp appears on bubbles from rounds that are now in the past
   const isSubmitted = !isTyping && !isLive && typeof currentRound === 'number' && round < currentRound;
 
   return (

@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useGame, useGameDispatch } from '../../context/GameContext';
 import { scoreArgument, getAIScore, getJudgeComment, getAIResponse } from '../../data/mockAI';
 import { generateAIArgument, scoreArgumentWithAI, checkNIMConnectivity } from '../../services/nimService';
+import { analyzeTone } from '../../services/tonalService';
 import { isQdrantConfigured, checkCollectionHealth, searchRelevantContext, getCaseOverview } from '../../services/qdrantService';
 import useVapi from '../../hooks/useVapi';
 import TopBar from './TopBar';
@@ -10,6 +11,7 @@ import ChatArea from './ChatArea';
 import VoiceWaveform from './VoiceWaveform';
 import ArgumentInput from './ArgumentInput';
 import TurnBanner from './TurnBanner';
+import ToneChip from './ToneChip';
 import NotificationToast from './NotificationToast';
 import './CourtroomArena.css';
 
@@ -195,8 +197,17 @@ export default function CourtroomArena() {
       prompt += `\n\nRELEVANT CONTEXT FOR THIS ROUND:\n${roundContext}`;
     }
 
+    // Inject prior rounds so AI continues the case rather than restarting
+    const priorArgs = state.arguments.filter(a => a.round < state.currentRound);
+    if (priorArgs.length > 0) {
+      const history = priorArgs.map(a =>
+        `Round ${a.round} — ${a.side === 'user' ? 'Opposing Counsel' : 'You'}: ${a.text}`
+      ).join('\n');
+      prompt += `\n\nPREVIOUS ROUNDS (do NOT repeat these — build upon them):\n${history}`;
+    }
+
     return prompt;
-  }, [state.selectedCase, state.selectedSide, state.currentRound, state.totalRounds, state.caseContext, aiSide, roundContext]);
+  }, [state.selectedCase, state.selectedSide, state.currentRound, state.totalRounds, state.caseContext, state.arguments, aiSide, roundContext]);
 
   // ─── Vapi callbacks ────────────────────────────────────────────────────────
 
@@ -242,6 +253,9 @@ export default function CourtroomArena() {
     );
 
     dispatch({ type: 'SUBMIT_ARGUMENT', payload: fullTranscript });
+    // Fire-and-forget tonal analysis — never blocks Vapi
+    analyzeTone({ text: fullTranscript, side: state.selectedSide, round: state.currentRound })
+      .then(result => { if (result) dispatch({ type: 'SET_TONE_RESULT', payload: result }); });
     setShowScores(false);
 
     // Score after a short delay to let AI respond first
@@ -273,50 +287,56 @@ export default function CourtroomArena() {
     }, 4000);
   }, [dispatch, state.selectedCase, state.selectedSide, state.currentRound, addNotification]);
 
+  const handleCallStart = useCallback(() => {
+    setVoiceError('');
+    setIsAiSpeaking(false);
+    liveTranscriptRef.current = '';
+    setLiveTranscript('');
+    userTranscriptRef.current = '';
+    setLiveUserTranscript('');
+    addNotification(
+      "Voice session started successfully. You can now speak your arguments.",
+      'voice',
+      3000
+    );
+  }, [addNotification]);
+
+  const handleCallEnd = useCallback(() => {
+    setIsAiSpeaking(false);
+    // Flush any remaining user speech as a complete submission
+    processAndSubmitUserTranscript();
+    // Commit any remaining AI transcript
+    const remaining = liveTranscriptRef.current.trim();
+    if (remaining) {
+      dispatch({ type: 'AI_RESPOND', payload: remaining });
+      liveTranscriptRef.current = '';
+      setLiveTranscript('');
+    }
+    addNotification(
+      "Voice session ended. You can start a new session or switch to text mode.",
+      'voice',
+      3000
+    );
+  }, [processAndSubmitUserTranscript, dispatch, addNotification]);
+
+  const handleVapiError = useCallback((err) => {
+    const errorMessage = err?.message || 'Voice connection failed.';
+    setVoiceError(errorMessage);
+    setIsAiSpeaking(false);
+    addNotification(
+      `Voice Error: ${errorMessage}. Check microphone permissions and try again, or switch to text mode.`,
+      'error',
+      8000
+    );
+  }, [addNotification]);
+
   const vapi = useVapi({
     systemPrompt: buildSystemPrompt(),
     onUserTranscript: handleUserVoiceTranscript,
     onAssistantTranscript: handleAssistantTranscript,
-    onCallStart: () => {
-      setVoiceError('');
-      setIsAiSpeaking(false);
-      liveTranscriptRef.current = '';
-      setLiveTranscript('');
-      userTranscriptRef.current = '';
-      setLiveUserTranscript('');
-      addNotification(
-        "Voice session started successfully. You can now speak your arguments.",
-        'voice',
-        3000
-      );
-    },
-    onCallEnd: () => {
-      setIsAiSpeaking(false);
-      // Flush any remaining user speech as a complete submission
-      processAndSubmitUserTranscript();
-      // Commit any remaining AI transcript
-      const remaining = liveTranscriptRef.current.trim();
-      if (remaining) {
-        dispatch({ type: 'AI_RESPOND', payload: remaining });
-        liveTranscriptRef.current = '';
-        setLiveTranscript('');
-      }
-      addNotification(
-        "Voice session ended. You can start a new session or switch to text mode.",
-        'voice',
-        3000
-      );
-    },
-    onError: (err) => {
-      const errorMessage = err?.message || 'Voice connection failed.';
-      setVoiceError(errorMessage);
-      setIsAiSpeaking(false);
-      addNotification(
-        `Voice Error: ${errorMessage}. Check microphone permissions and try again, or switch to text mode.`,
-        'error',
-        8000
-      );
-    },
+    onCallStart: handleCallStart,
+    onCallEnd: handleCallEnd,
+    onError: handleVapiError,
   });
 
   // ─── Mute/unmute user mic based on who is speaking ────────────────────────
@@ -428,30 +448,35 @@ export default function CourtroomArena() {
     );
 
     dispatch({ type: 'SUBMIT_ARGUMENT', payload: text });
+    // Defer tonal analysis by 2s so it never fires concurrently with generation or scoring
+    setTimeout(() => {
+      analyzeTone({ text, side: state.selectedSide, round: state.currentRound })
+        .then(result => { if (result) dispatch({ type: 'SET_TONE_RESULT', payload: result }); });
+    }, 2000);
     setShowScores(false);
 
-    const [aiResponse, aiScoreAttempt] = await Promise.all([
-      getAIResponseText(text),
-      scoreArgumentWithAI({
-        userArgument: text,
-        caseData: state.selectedCase,
-        side: state.selectedSide,
-        round: state.currentRound,
-      }),
-    ]);
-
-    // Ensure aiResponse is always a string — never let an object reach the reducer
+    // 1. Get AI argument first (most important call)
+    const aiResponse = await getAIResponseText(text);
     const aiText = typeof aiResponse === 'string' ? aiResponse : String(aiResponse ?? '');
 
-    // Item 2 — 500ms "thinking" pause before AI response appears
+    // 2. Small thinking pause before AI response appears
     await new Promise(r => setTimeout(r, 500));
     dispatch({ type: 'AI_RESPOND', payload: aiText });
+
+    // 3. Score after a 1.5s gap so it never overlaps with generation
+    await new Promise(r => setTimeout(r, 1500));
+    const aiScoreAttempt = await scoreArgumentWithAI({
+      userArgument: text,
+      caseData: state.selectedCase,
+      side: state.selectedSide,
+      round: state.currentRound,
+    });
 
     const userScore = aiScoreAttempt || scoreArgument(text, state.selectedCase, state.selectedSide, state.currentRound);
     const aiScore = getAIScore(state.currentRound);
     const judgeComment = getJudgeComment(userScore, aiScore);
 
-    // Item 3 — 800ms deliberation delay before Judge reveals scores
+    // 4. 800ms deliberation delay before Judge reveals scores
     await new Promise(r => setTimeout(r, 800));
     dispatch({ type: 'SCORE_ROUND', payload: { userScore, aiScore, judgeComment } });
     setShowScores(true);
@@ -687,6 +712,18 @@ export default function CourtroomArena() {
       <section className="courtroom__scene">
         <aside className="courtroom__side-panel">
           <JudgeBench roundScores={state.roundScores} isVisible={showScores} />
+
+          {/* Tonal analysis — shows latest user argument tone */}
+          {state.toneResults.length > 0 && (
+            <div className="courtroom__tone-panel">
+              <div className="courtroom__tone-panel-header">
+                <div className="courtroom__tone-panel-line" />
+                <span className="courtroom__tone-panel-label">TONE ANALYSIS</span>
+                <div className="courtroom__tone-panel-line" />
+              </div>
+              <ToneChip tone={state.toneResults[state.toneResults.length - 1]} />
+            </div>
+          )}
 
           {/* Waveform — show whenever call is active, not just in voice mode */}
           {vapi.isCallActive && (

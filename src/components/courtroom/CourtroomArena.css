@@ -73,6 +73,38 @@
   background: rgba(26, 32, 39, 0.58);
 }
 
+/* ── Tone analysis panel in sidebar ──────────────────────────── */
+.courtroom__tone-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-lg);
+  background: rgba(26, 32, 39, 0.58);
+}
+
+.courtroom__tone-panel-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.courtroom__tone-panel-line {
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.courtroom__tone-panel-label {
+  font-family: var(--font-label);
+  font-size: 0.5rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-outline);
+  white-space: nowrap;
+}
+
 .courtroom__round-action {
   margin-top: auto;
 }
