@@ -12,7 +12,7 @@ const initialState = {
   selectedSide: null,        // 'petitioner' | 'respondent'
   difficulty: 'medium',      // 'easy' | 'medium' | 'hard'
   currentRound: 1,
-  totalRounds: 5,
+  totalRounds: 3,
   arguments: [],              // { side: 'user'|'ai', text, round }
   roundScores: [],            // { round, userScore: {...}, aiScore: {...}, judgeComment }
   toneResults: [],            // { round, side, dominant, confidence, formality, emotionality, tags, tip }
@@ -59,6 +59,9 @@ function gameReducer(state, action) {
       };
 
     case 'SUBMIT_ARGUMENT':
+      if (state.arguments.some((argument) => argument.round === state.currentRound && argument.side === 'user')) {
+        return state;
+      }
       return {
         ...state,
         arguments: [
@@ -70,6 +73,12 @@ function gameReducer(state, action) {
 
     case 'AI_RESPOND': {
       const aiText = String(action.payload ?? '');
+      if (state.arguments.some((argument) => argument.round === state.currentRound && argument.side === 'ai')) {
+        return {
+          ...state,
+          isAiTyping: false,
+        };
+      }
       return {
         ...state,
         arguments: aiText
@@ -83,6 +92,9 @@ function gameReducer(state, action) {
     }
 
     case 'SCORE_ROUND':
+      if (state.roundScores.some((roundScore) => roundScore.round === state.currentRound)) {
+        return state;
+      }
       return {
         ...state,
         roundScores: [

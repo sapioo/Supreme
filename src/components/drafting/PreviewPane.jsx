@@ -193,7 +193,8 @@ export default function PreviewPane({
 
         if (cancelled || renderRunRef.current !== runId) return;
         setPageCount(flow?.total || previewRoot.querySelectorAll('.pagedjs_page').length);
-      } catch {
+      } catch (err) {
+        console.error('[PreviewPane] pagedjs error:', err);
         if (cancelled || renderRunRef.current !== runId) return;
         previewRoot.innerHTML = '';
       }

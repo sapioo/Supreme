@@ -27,7 +27,7 @@ export default function SettingsDialog({
               Provider settings
             </p>
             <h2 className="text-[1.35rem] font-semibold text-[var(--color-on-surface)]">
-              OpenRouter
+              Gemini
             </h2>
           </div>
           <Button
@@ -48,7 +48,7 @@ export default function SettingsDialog({
             </Label>
             <Input
               className="min-h-[52px] px-3.5 text-base"
-              value="OpenRouter"
+              value="Gemini"
               disabled
             />
           </div>
@@ -64,7 +64,7 @@ export default function SettingsDialog({
               onChange={(event) =>
                 onFormChange({ ...settingsForm, apiKey: event.target.value })
               }
-              placeholder="sk-or-v1-..."
+              placeholder="AIza..."
             />
           </div>
 
@@ -78,7 +78,7 @@ export default function SettingsDialog({
               onChange={(event) =>
                 onFormChange({ ...settingsForm, model: event.target.value })
               }
-              placeholder="openrouter/auto or provider/model-name"
+              placeholder="gemini-2.5-flash"
             />
           </div>
         </div>

@@ -33,6 +33,9 @@ export default function TurnBanner({ side, round, totalRounds, active }) {
 
     const sideLabel = side === 'petitioner' ? 'PETITIONER' : 'RESPONDENT';
     const icon = side === 'petitioner' ? '🔵' : '🟡';
+    const roundLabel = totalRounds === 1
+        ? 'Present your opening argument'
+        : `Round ${round} of ${totalRounds} — Present your argument`;
 
     return (
         <div className={`turn-banner ${exiting ? 'turn-banner--exit' : 'turn-banner--enter'}`} role="status" aria-live="polite">
@@ -40,7 +43,7 @@ export default function TurnBanner({ side, round, totalRounds, active }) {
                 <span className="turn-banner__icon">{icon}</span>
                 <div className="turn-banner__text">
                     <span className="turn-banner__role">{sideLabel}'S TURN</span>
-                    <span className="turn-banner__round">Round {round} of {totalRounds} — Present your argument</span>
+                    <span className="turn-banner__round">{roundLabel}</span>
                 </div>
                 <span className="turn-banner__scales">⚖</span>
             </div>

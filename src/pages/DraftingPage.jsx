@@ -247,55 +247,66 @@ export default function DraftingPage({ onBack }) {
   }, [source]);
 
   useEffect(() => {
-    let resetTimeout;
-
-    const handleAfterPrint = () => {
-      document.body.classList.remove('drafting-print-mode');
-      setExportState('Print opened');
-      resetTimeout = window.setTimeout(() => {
-        setExportState('Export PDF');
-      }, 1600);
-    };
-
-    window.addEventListener('afterprint', handleAfterPrint);
-
     return () => {
-      window.removeEventListener('afterprint', handleAfterPrint);
       document.body.classList.remove('drafting-print-mode');
-      if (resetTimeout) window.clearTimeout(resetTimeout);
     };
   }, []);
 
-  const handleExportPdf = useCallback(() => {
+  const handleExportPdf = useCallback(async () => {
     if (!source.trim()) return;
 
     setMobileTab('preview');
     setEditorLayout('preview');
     setShowRightSidebar(false);
-    setExportState('Preparing...');
+    setExportState('Generating PDF...');
 
-    window.setTimeout(() => {
-      try {
-        const previewContainers = document.querySelectorAll(
-          '.drafting-pane-shell--preview, .drafting-pane--preview, .drafting-preview-pages, .pagedjs_pages'
-        );
-        previewContainers.forEach((node) => {
-          if ('scrollTo' in node) {
-            node.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-            return;
-          }
-          node.scrollTop = 0;
-          node.scrollLeft = 0;
-        });
-        window.scrollTo(0, 0);
-        document.body.classList.add('drafting-print-mode');
-        window.print();
-      } catch {
-        document.body.classList.remove('drafting-print-mode');
-        setExportState('Print failed');
+    // Small delay to let the preview pane render/settle
+    await new Promise((r) => setTimeout(r, 200));
+
+    try {
+      const html2pdf = (await import('html2pdf.js')).default;
+
+      // Grab the pagedjs-rendered pages container
+      const pagesEl = document.querySelector('.drafting-preview-pages .pagedjs_pages')
+        || document.querySelector('.drafting-preview-pages');
+
+      if (!pagesEl) {
+        setExportState('Export failed');
         window.setTimeout(() => setExportState('Export PDF'), 1800);
+        return;
       }
-    }, 80);
+
+      // Build a filename from the first title block or fall back to generic name
+      const titleEl = pagesEl.querySelector('.drafting-preview__title');
+      const baseName = titleEl?.textContent?.trim().replace(/[^a-zA-Z0-9 _-]/g, '').slice(0, 60) || 'draft';
+      const fileName = `${baseName}.pdf`;
+
+      await html2pdf()
+        .set({
+          margin: [0, 0, 0, 0],
+          filename: fileName,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: {
+            scale: 2,
+            useCORS: true,
+            letterRendering: true,
+            scrollY: 0,
+            scrollX: 0,
+            windowWidth: pagesEl.scrollWidth,
+          },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          pagebreak: { mode: ['css', 'legacy'], avoid: '.drafting-preview-keep' },
+        })
+        .from(pagesEl)
+        .save();
+
+      setExportState('Downloaded');
+      window.setTimeout(() => setExportState('Export PDF'), 1600);
+    } catch (err) {
+      console.error('[DraftingPage] PDF export error:', err);
+      setExportState('Export failed');
+      window.setTimeout(() => setExportState('Export PDF'), 1800);
+    }
   }, [source]);
 
   const handleSendChat = useCallback(async () => {

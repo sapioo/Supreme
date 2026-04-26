@@ -1,7 +1,8 @@
 import { getDraftingAISettings } from './draftingAISettings';
 
-const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
-const APP_TITLE = 'SUPREME Drafting Editor';
+const GEMINI_BASE_URL = import.meta.env.DEV
+  ? '/api/gemini/v1beta/openai'
+  : 'https://generativelanguage.googleapis.com/v1beta/openai';
 const TRUNCATED_RESPONSE_MESSAGE =
   'The model response was cut off before it produced a complete draft. Please retry or ask for a shorter edit.';
 const MALFORMED_RESPONSE_MESSAGE =
@@ -18,11 +19,6 @@ function cleanModelOutput(text) {
   cleaned = cleaned.replace(/^`\s*/, '').replace(/\s*`$/, '');
 
   return cleaned.trim();
-}
-
-function getWindowOrigin() {
-  if (typeof window === 'undefined') return 'http://localhost';
-  return window.location.origin;
 }
 
 function normalizeAssistantContent(content) {
@@ -265,7 +261,7 @@ function logDraftingAIResponse({ data, content, parsed, elapsedMs }) {
   };
 
   if (parsed.parseOk && !parsed.malformed && !parsed.truncated) {
-    console.groupCollapsed('[DraftingAI] OpenRouter response');
+    console.groupCollapsed('[DraftingAI] Gemini response');
     console.info(diagnostics);
     console.groupEnd();
     return;
@@ -374,7 +370,7 @@ export async function chatWithDraftingAI({ source, messages }) {
   if (!settings.apiKey || !settings.model) {
     return {
       source: 'config-missing',
-      message: 'OpenRouter is not configured. Set DRAFTING_OPENROUTER_KEY and DRAFTING_OPENROUTER_MODEL in your .env file.',
+      message: 'Gemini is not configured. Set VITE_GEMINI_API_KEY or DRAFTING_GEMINI_KEY in your .env file.',
       proposedSource: null,
     };
   }
@@ -382,13 +378,11 @@ export async function chatWithDraftingAI({ source, messages }) {
   const startedAt = performance.now();
 
   try {
-    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+    const response = await fetch(`${GEMINI_BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${settings.apiKey}`,
-        'HTTP-Referer': getWindowOrigin(),
-        'X-Title': APP_TITLE,
       },
       body: JSON.stringify({
         model: settings.model,
@@ -406,7 +400,7 @@ export async function chatWithDraftingAI({ source, messages }) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`OpenRouter API error (${response.status}): ${errorText.slice(0, 240)}`);
+      throw new Error(`Gemini API error (${response.status}): ${errorText.slice(0, 240)}`);
     }
 
     const data = await response.json();
@@ -424,15 +418,15 @@ export async function chatWithDraftingAI({ source, messages }) {
     });
 
     return {
-      source: 'openrouter',
+      source: 'gemini',
       message: parsed.message,
       proposedSource: parsed.proposedSource,
     };
   } catch (error) {
-    console.warn('[DraftingAI] OpenRouter request failed:', error.message);
+    console.warn('[DraftingAI] Gemini request failed:', error.message);
     return {
       source: 'error',
-      message: `OpenRouter request failed. ${error.message}`,
+      message: `Gemini request failed. ${error.message}`,
       proposedSource: null,
     };
   }

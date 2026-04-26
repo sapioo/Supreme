@@ -364,6 +364,7 @@ export async function generateAIArgument({
   difficulty = 'medium',
   caseContext = '',
   conversationHistory = [],
+  responseMode = 'direct-reply',
 }) {
   const aiParty = caseData[aiSide];
   const userSide = aiSide === 'petitioner' ? 'respondent' : 'petitioner';
@@ -379,6 +380,12 @@ export async function generateAIArgument({
   }[difficulty] ?? 'Respond in exactly 2-3 short sentences. End on a complete sentence.';
 
   // Build the system prompt
+  const roundInstruction = responseMode === 'opening-statement'
+    ? 'You are delivering your own opening submission. Do not directly rebut the opponent’s current statement in this round.'
+    : responseMode === 'delayed-rebuttal'
+      ? 'You are responding to the opponent’s previous-round argument, not the statement they just made in the current round.'
+      : 'The opposing counsel has just made an argument. Respond as a skilled Indian Supreme Court advocate would.';
+
   let systemPrompt = `You are ${aiParty.name}, arguing as the ${aiSide} in the landmark Indian Supreme Court case "${caseData.shortName}" (${caseData.year}).
 
 Your position: ${aiParty.position}
@@ -389,13 +396,15 @@ ${aiParty.keyArgs.map((a, i) => `${i + 1}. ${a}`).join('\n')}
 
 Relevant constitutional articles: ${caseData.articles.join(', ')}
 
-You are in a live courtroom debate simulation. The opposing counsel (${userParty.name}) has just made an argument. Respond as a skilled Indian Supreme Court advocate would.
+You are in a live courtroom debate simulation. ${roundInstruction}
 
 STRICT RULES:
 - Address the bench as "My Lords" or "Your Lordships"
 - ${lengthInstruction}
 - Be formal, authoritative, and precise
-- Directly counter the opponent's specific points
+- Present exactly one main argument for this round
+- In Round 1, give an opening submission only
+- In later rounds, rebut only the previous round's argument when relevant
 - Cite constitutional articles and legal principles by name
 - Do NOT use bullet points or numbered lists — write in flowing legal prose
 - Do NOT break character or acknowledge this is a simulation

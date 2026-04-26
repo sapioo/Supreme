@@ -1,13 +1,13 @@
 const DEFAULT_SETTINGS = {
-  provider: 'openrouter',
+  provider: 'gemini',
   apiKey: '',
-  model: '',
+  model: 'gemini-2.5-flash',
 };
 
 export function getDraftingAISettings() {
   return {
-    provider: 'openrouter',
-    apiKey: String(import.meta.env.DRAFTING_OPENROUTER_KEY || '').trim(),
-    model: String(import.meta.env.DRAFTING_OPENROUTER_MODEL || '').trim(),
+    provider: 'gemini',
+    apiKey: String(import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.DRAFTING_GEMINI_KEY || '').trim(),
+    model: String(import.meta.env.DRAFTING_GEMINI_MODEL || DEFAULT_SETTINGS.model).trim(),
   };
 }

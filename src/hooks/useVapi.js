@@ -132,16 +132,16 @@ export default function useVapi({
       });
 
       vapi.on('message', (msg) => {
-        if (msg.type !== 'transcript' || msg.transcriptType !== 'final') return;
+        if (msg.type !== 'transcript') return;
         // Coerce transcript to string — Vapi SDK can sometimes pass non-string values
         const text = typeof msg.transcript === 'string'
           ? msg.transcript
           : String(msg.transcript ?? '');
         if (!text) return;
         if (msg.role === 'user') {
-          cbRef.current.onUserTranscript?.(text);
+          cbRef.current.onUserTranscript?.(text, msg);
         } else if (msg.role === 'assistant') {
-          cbRef.current.onAssistantTranscript?.(text);
+          cbRef.current.onAssistantTranscript?.(text, msg);
         }
       });
 
@@ -165,7 +165,6 @@ export default function useVapi({
     }
 
     const prompt = systemPromptRef.current;
-    const assistantId = import.meta.env.VITE_VAPI_ASSISTANT_ID;
 
     const inlineConfig = {
       model: {
@@ -183,22 +182,12 @@ export default function useVapi({
         endpointing: 500,
       },
       interruptionsEnabled: false,
-      firstMessage: "My Lords, I am ready.",
     };
 
     try {
-      if (assistantId && assistantId !== 'your-vapi-assistant-id-here') {
-        console.log('[Vapi] Starting with assistant ID + overrides');
-        await vapi.start(assistantId, {
-          model: inlineConfig.model,
-          transcriber: inlineConfig.transcriber,
-          interruptionsEnabled: false,
-          firstMessage: inlineConfig.firstMessage,
-        });
-      } else {
-        console.log('[Vapi] Starting with inline config');
-        await vapi.start(inlineConfig);
-      }
+      // Courtroom rounds need the repo's dynamic prompt, not a static dashboard assistant.
+      console.log('[Vapi] Starting with inline config');
+      await vapi.start(inlineConfig);
     } catch (err) {
       console.error('[Vapi] startCall failed:', err);
       setConnectionStatus('error');

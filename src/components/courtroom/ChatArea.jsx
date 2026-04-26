@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
 import './ChatArea.css';
 
-function Panel({ side, label, text, isLive, isTyping, isAiSpeaking, currentRound }) {
+function Panel({ side, label, text, isLive, isTyping, currentRound }) {
   const isUser = side === 'user';
   const isEmpty = !text && !isTyping && !isLive;
 
@@ -48,21 +47,20 @@ export default function ChatArea({
   arguments: args,
   isAiTyping,
   isAiSpeaking,
-  liveTranscript,
   liveUserTranscript,
+  liveAssistantTranscript,
   currentRound,
   caseName,
 }) {
-  // Only show arguments from the current round
-  const roundArgs = args.filter(a => a.round === currentRound);
-  const userArg = roundArgs.find(a => a.side === 'user');
-  const aiArg = roundArgs.find(a => a.side === 'ai');
+  const roundArgs = args.filter((a) => a.round === currentRound);
+  const userArg = [...roundArgs].reverse().find((a) => a.side === 'user');
+  const aiArg = [...roundArgs].reverse().find((a) => a.side === 'ai');
 
-  const userText = liveUserTranscript || userArg?.text || '';
-  const aiText = liveTranscript || aiArg?.text || '';
+  const userText = userArg?.text || liveUserTranscript || '';
+  const aiText = aiArg?.text || liveAssistantTranscript || '';
 
   const isUserLive = !!liveUserTranscript;
-  const isAiLive = !!liveTranscript;
+  const isAiLive = !aiArg?.text && !!liveAssistantTranscript && (isAiSpeaking || isAiTyping);
 
   return (
     <div className="chat-area" id="chat-area">
@@ -94,8 +92,7 @@ export default function ChatArea({
           label="Opposing Counsel"
           text={aiText}
           isLive={isAiLive}
-          isTyping={isAiTyping && !liveTranscript}
-          isAiSpeaking={isAiSpeaking}
+          isTyping={isAiTyping}
           currentRound={currentRound}
         />
       </div>
