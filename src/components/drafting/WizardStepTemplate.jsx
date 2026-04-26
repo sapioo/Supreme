@@ -18,7 +18,7 @@ export default function WizardStepTemplate({
           Select the document type
         </h2>
         <span>
-          Choose from a larger drafting library and start from a more specific legal structure.
+          Choose from an India-specific drafting library spanning writs, civil and criminal pleadings, family matters, property work, corporate records, and contracts.
         </span>
       </div>
 

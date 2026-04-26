@@ -1,20 +1,21 @@
 import {
   Clipboard,
+  FileOutput,
   PanelLeftClose,
   PanelLeftOpen,
 } from 'lucide-react';
 import { Button } from '../ui/button';
-import { Input } from '../ui/input';
 import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 
 export default function EditorChromeBar({
-  activeDraft,
   breadcrumb,
-  onTitleChange,
   showRightSidebar,
   onToggleSidebar,
   onCopy,
   copyState,
+  onExportPdf,
+  exportState,
+  isExportDisabled = false,
   editorLayout,
   onEditorLayoutChange,
 }) {
@@ -29,15 +30,7 @@ export default function EditorChromeBar({
               {breadcrumb}
             </div>
           ) : null}
-          <div className="drafting-editor-bar__title-wrap">
-            <Input
-              className="drafting-editor-bar__title-input"
-              value={activeDraft?.title || 'Untitled Draft'}
-              onChange={(event) => onTitleChange(event.target.value)}
-              disabled={!activeDraft}
-              aria-label="Draft title"
-            />
-          </div>
+          <span className="drafting-editor-bar__ai-label">AI</span>
         </div>
       </div>
 
@@ -66,13 +59,27 @@ export default function EditorChromeBar({
             onClick={onToggleSidebar}
             aria-label={showRightSidebar ? 'Hide AI sidebar' : 'Show AI sidebar'}
             title={showRightSidebar ? 'Hide AI sidebar' : 'Show AI sidebar'}
+            size="icon"
           >
             {showRightSidebar ? (
               <PanelLeftClose className="drafting-editor-bar__icon drafting-editor-bar__icon--strong" />
             ) : (
               <PanelLeftOpen className="drafting-editor-bar__icon drafting-editor-bar__icon--strong" />
             )}
-            <span>AI</span>
+          </Button>
+        </div>
+
+        <div className="drafting-editor-bar__action-group">
+          <Button
+            variant="outline"
+            className="drafting-editor-bar__export"
+            onClick={onExportPdf}
+            disabled={isExportDisabled}
+            aria-label={exportState}
+            title={exportState}
+          >
+            <FileOutput className="drafting-editor-bar__icon" />
+            <span>{exportState}</span>
           </Button>
         </div>
 
@@ -80,7 +87,6 @@ export default function EditorChromeBar({
           <Button
             className="drafting-editor-bar__copy"
             onClick={onCopy}
-            disabled={!activeDraft}
             size="icon"
             aria-label={copyState}
             title={copyState}

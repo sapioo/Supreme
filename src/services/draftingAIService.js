@@ -54,27 +54,28 @@ function isCompleteLatexDocument(source) {
   return trimmed.startsWith('\\documentclass') && trimmed.includes('\\begin{document}') && trimmed.includes('\\end{document}');
 }
 
-function getLikelyTruncationReason({ cleaned, finishReason, proposedSource }) {
+function getLikelyTruncationReason({ cleaned, finishReason }) {
   if (finishReason === 'length') return 'finish_reason_length';
   if (cleaned.startsWith('{') && !cleaned.endsWith('}')) return 'unterminated_json_object';
-  if (typeof proposedSource === 'string' && proposedSource.trim() && !isCompleteLatexDocument(proposedSource)) {
-    return 'incomplete_latex_document';
-  }
   return null;
 }
 
 function normalizeParsedPayload(parsed) {
-  const message = typeof parsed?.message === 'string'
+  let message = typeof parsed?.message === 'string'
     ? parsed.message.trim()
     : '';
+
+  // Strip leading colons/dashes that some models prefix
+  message = message.replace(/^[:\-–—]\s*/, '').trim();
+
   const proposedSource = typeof parsed?.proposedSource === 'string' && parsed.proposedSource.trim()
     ? parsed.proposedSource.trim()
     : null;
 
   return {
     message: message || 'The assistant returned no explanation.',
-    proposedSource: proposedSource && isCompleteLatexDocument(proposedSource) ? proposedSource : null,
-    rejectedProposedSource: proposedSource && !isCompleteLatexDocument(proposedSource) ? proposedSource : null,
+    proposedSource,
+    rejectedProposedSource: null,
   };
 }
 
@@ -100,7 +101,6 @@ function parseStructuredResponse(rawContent, { finishReason } = {}) {
       const truncationReason = getLikelyTruncationReason({
         cleaned,
         finishReason,
-        proposedSource: normalized.rejectedProposedSource,
       });
 
       if (truncationReason) {
@@ -139,7 +139,6 @@ function parseStructuredResponse(rawContent, { finishReason } = {}) {
         const truncationReason = getLikelyTruncationReason({
           cleaned,
           finishReason,
-          proposedSource: normalized.rejectedProposedSource,
         });
 
         if (truncationReason) {
@@ -175,7 +174,7 @@ function parseStructuredResponse(rawContent, { finishReason } = {}) {
   const sourceMatch = cleaned.match(/"proposedSource"\s*:\s*"([\s\S]*?)(?:"\s*\}?\s*$)/);
 
   if (messageMatch) {
-    const message = decodeJsonString(messageMatch[1]);
+    const message = decodeJsonString(messageMatch[1]).replace(/^[:\-–—]\s*/, '');
 
     let proposedSource = null;
     if (sourceMatch && sourceMatch[1].trim() && sourceMatch[1].trim() !== 'null') {
@@ -185,7 +184,6 @@ function parseStructuredResponse(rawContent, { finishReason } = {}) {
     const truncationReason = getLikelyTruncationReason({
       cleaned,
       finishReason,
-      proposedSource,
     });
 
     if (truncationReason) {
@@ -202,7 +200,7 @@ function parseStructuredResponse(rawContent, { finishReason } = {}) {
 
     return {
       message: message || 'The assistant returned no explanation.',
-      proposedSource: proposedSource && isCompleteLatexDocument(proposedSource) ? proposedSource : null,
+      proposedSource: proposedSource || null,
       parseStrategy: 'regex-fields',
       parseOk: true,
       malformed: true,
@@ -213,7 +211,7 @@ function parseStructuredResponse(rawContent, { finishReason } = {}) {
 
   // Attempt 4: never show raw broken JSON in chat. Keep it in console diagnostics instead.
   if (cleaned.startsWith('{') && cleaned.includes('"message"')) {
-    const truncationReason = getLikelyTruncationReason({ cleaned, finishReason, proposedSource: null });
+    const truncationReason = getLikelyTruncationReason({ cleaned, finishReason });
     return {
       message: truncationReason ? TRUNCATED_RESPONSE_MESSAGE : MALFORMED_RESPONSE_MESSAGE,
       proposedSource: null,
@@ -349,12 +347,11 @@ Always return valid JSON with this exact shape:
 
 Rules:
 - "message" must always be present — keep it concise, practical, and drafting-focused.
-- Keep "message" under 240 characters when you also provide proposedSource.
-- "proposedSource" must be null unless you are intentionally proposing a full-document rewrite.
-- If the user asks a question, gives feedback, or requests explanation — set proposedSource to null and answer in "message".
-- If the user asks for edits, additions, restructuring, or rewriting — include the complete revised LaTeX in "proposedSource".
+- Keep "message" under 200 characters when you also provide proposedSource.
+- ALWAYS include "proposedSource" with the complete revised LaTeX when the user asks for ANY change, edit, addition, fill, rewrite, or modification to the document. Do not just describe the changes — actually make them.
+- Only set "proposedSource" to null when the user asks a pure question, requests explanation, or gives feedback that does not require document changes.
 - If you set "proposedSource", it MUST contain the complete document from \\documentclass to \\end{document}.
-- If a requested edit is very large, prefer a concise explanation in "message" and ask the user to narrow the edit instead of returning an incomplete document.
+- When the user says "fill", "add", "replace", "change", "update", "remove", "rewrite", or similar action words — you MUST return the modified document in "proposedSource". Never just describe what you would do.
 - Never wrap JSON in markdown fences or code blocks.
 - Never include commentary outside the JSON object.
 - Keep the tone professional, precise, and suitable for Indian legal practice.`;

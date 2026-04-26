@@ -27,7 +27,19 @@ import {
 } from '../components/ui/breadcrumb';
 
 const EMPTY_PREVIEW = [{ type: 'paragraph', text: 'Create or open a draft to begin.' }];
-const matterTypes = ['Civil', 'Criminal', 'Constitutional', 'Commercial', 'Advisory'];
+const matterTypes = [
+  'Constitutional',
+  'Civil',
+  'Criminal',
+  'Consumer',
+  'Family',
+  'Property',
+  'Arbitration',
+  'Corporate',
+  'Contracts',
+  'Employment',
+  'Advisory',
+];
 const urgencyLevels = ['Standard', 'Due this week', 'Urgent filing', 'Review only'];
 const wizardSteps = [
   { id: 'template', label: 'Template' },
@@ -130,6 +142,7 @@ export default function DraftingPage({ onBack }) {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
+  const [exportState, setExportState] = useState('Export PDF');
   const aiSettings = getDraftingAISettings();
   const workspaceRef = useRef(null);
   const resizeStateRef = useRef(null);
@@ -231,6 +244,58 @@ export default function DraftingPage({ onBack }) {
       setCopyState('Copy failed');
       setTimeout(() => setCopyState('Copy Draft'), 1600);
     }
+  }, [source]);
+
+  useEffect(() => {
+    let resetTimeout;
+
+    const handleAfterPrint = () => {
+      document.body.classList.remove('drafting-print-mode');
+      setExportState('Print opened');
+      resetTimeout = window.setTimeout(() => {
+        setExportState('Export PDF');
+      }, 1600);
+    };
+
+    window.addEventListener('afterprint', handleAfterPrint);
+
+    return () => {
+      window.removeEventListener('afterprint', handleAfterPrint);
+      document.body.classList.remove('drafting-print-mode');
+      if (resetTimeout) window.clearTimeout(resetTimeout);
+    };
+  }, []);
+
+  const handleExportPdf = useCallback(() => {
+    if (!source.trim()) return;
+
+    setMobileTab('preview');
+    setEditorLayout('preview');
+    setShowRightSidebar(false);
+    setExportState('Preparing...');
+
+    window.setTimeout(() => {
+      try {
+        const previewContainers = document.querySelectorAll(
+          '.drafting-pane-shell--preview, .drafting-pane--preview, .drafting-preview-pages, .pagedjs_pages'
+        );
+        previewContainers.forEach((node) => {
+          if ('scrollTo' in node) {
+            node.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+            return;
+          }
+          node.scrollTop = 0;
+          node.scrollLeft = 0;
+        });
+        window.scrollTo(0, 0);
+        document.body.classList.add('drafting-print-mode');
+        window.print();
+      } catch {
+        document.body.classList.remove('drafting-print-mode');
+        setExportState('Print failed');
+        window.setTimeout(() => setExportState('Export PDF'), 1800);
+      }
+    }, 80);
   }, [source]);
 
   const handleSendChat = useCallback(async () => {
@@ -418,16 +483,14 @@ export default function DraftingPage({ onBack }) {
   return (
     <main className="drafting-page drafting-page--editor" id="drafting-page">
       <EditorChromeBar
-        activeDraft={activeDraft}
         breadcrumb={breadcrumb}
-        onTitleChange={(value) => {
-          if (!activeDraft) return;
-          setActiveDraft({ ...activeDraft, title: value });
-        }}
         showRightSidebar={showRightSidebar}
         onToggleSidebar={() => setShowRightSidebar((c) => !c)}
         onCopy={handleCopy}
         copyState={copyState}
+        onExportPdf={handleExportPdf}
+        exportState={exportState}
+        isExportDisabled={!source.trim()}
         editorLayout={editorLayout}
         onEditorLayoutChange={setEditorLayout}
       />

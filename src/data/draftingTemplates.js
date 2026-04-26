@@ -1,521 +1,580 @@
+function buildTemplate({ title, author, sections }) {
+  const formattedSections = sections
+    .map(
+      ({ heading, body }) => `\\section{${heading}}
+${body.trim()}
+`
+    )
+    .join('\n');
+
+  return `\\documentclass[12pt]{article}
+\\title{${title}}
+\\author{${author}}
+\\date{[DATE]}
+
+\\begin{document}
+\\maketitle
+
+${formattedSections}\\end{document}`;
+}
+
+function createTemplate({ id, name, shortName, category, description, title, author, sections }) {
+  return {
+    id,
+    name,
+    shortName,
+    category,
+    description,
+    source: buildTemplate({ title, author, sections }),
+  };
+}
+
 export const draftingTemplates = [
-  {
-    id: 'legal-notice',
-    name: 'Legal Notice',
+  createTemplate({
+    id: 'legal-notice-india',
+    name: 'Legal Notice (India)',
     shortName: 'Notice',
     category: 'Pre-litigation',
-    description: 'A structured notice for demand, breach, recovery, or pre-litigation action.',
-    source: String.raw`\documentclass[12pt]{article}
-\title{LEGAL NOTICE}
-\author{[LAWYER / FIRM NAME]}
-\date{[DATE]}
-
-\begin{document}
-\maketitle
-
-\section{Addressee}
-To,
-[NAME OF NOTICE RECIPIENT]
-[ADDRESS]
-
-\section{Client Details}
-Under instructions from and on behalf of my client, [CLIENT NAME], residing at [CLIENT ADDRESS], I issue this legal notice.
-
-\section{Facts}
-1. That [STATE THE FIRST MATERIAL FACT].
-2. That [STATE THE SECOND MATERIAL FACT].
-3. That despite repeated requests, [STATE DEFAULT / BREACH / OMISSION].
-
-\section{Legal Grounds}
-The acts and omissions described above constitute breach of legal obligation and have caused loss, prejudice, and avoidable hardship to my client.
-
-\section{Demand}
-You are hereby called upon to [STATE DEMAND] within [NUMBER] days from receipt of this notice.
-
-\section{Consequences}
-Failing compliance, my client shall be constrained to initiate appropriate civil and/or criminal proceedings at your risk as to costs and consequences.
-
-\section{Closing}
-A copy of this notice is retained in my office for record and future action.
-
-\end{document}`,
-  },
-  {
-    id: 'reply-notice',
-    name: 'Reply Notice',
+    description: 'An Indian pre-litigation notice for payment default, breach, property disputes, employment claims, or tort demands.',
+    title: 'LEGAL NOTICE',
+    author: '[ADVOCATE / LAW FIRM NAME]',
+    sections: [
+      { heading: 'Addressee', body: `To,\n[NAME OF RECIPIENT]\n[POSTAL ADDRESS]` },
+      { heading: 'Instructions', body: `Under instructions from and on behalf of my client, [CLIENT NAME], residing / having office at [ADDRESS], I issue the present notice.` },
+      { heading: 'Material Facts', body: `1. That [STATE THE FIRST MATERIAL FACT].\n2. That [STATE THE TRANSACTION / RELATIONSHIP / EVENT].\n3. That despite reminders dated [DATES], you have failed to [PAY / PERFORM / CEASE / DELIVER].` },
+      { heading: 'Legal Basis', body: `Your acts, omissions, and continuing defaults are contrary to the terms agreed between the parties and the applicable laws in India, including [STATUTE / RULE / CONTRACTUAL CLAUSE].` },
+      { heading: 'Demand', body: `You are hereby finally called upon to [STATE DEMAND CLEARLY] within [NUMBER] days from receipt of this notice.` },
+      { heading: 'Consequences of Non-Compliance', body: `Failing compliance, my client shall be constrained to initiate appropriate civil, criminal, consumer, commercial, arbitral, or constitutional proceedings, as advised, entirely at your risk as to costs and consequences.` },
+      { heading: 'Reservation', body: `Nothing stated herein shall be treated as a waiver of any other rights, remedies, claims, or reliefs available to my client under Indian law.` },
+    ],
+  }),
+  createTemplate({
+    id: 'reply-to-legal-notice-india',
+    name: 'Reply to Legal Notice (India)',
     shortName: 'Reply',
     category: 'Pre-litigation',
-    description: 'A defensive response to a received notice with denials, clarifications, and reservations.',
-    source: String.raw`\documentclass[12pt]{article}
-\title{REPLY TO LEGAL NOTICE}
-\author{On behalf of [CLIENT NAME]}
-\date{[DATE]}
-
-\begin{document}
-\maketitle
-
-\section{Reference}
-This reply is issued in response to your notice dated [DATE] addressed to my client, [CLIENT NAME].
-
-\section{Preliminary Position}
-The allegations set out in your notice are denied except to the extent expressly admitted herein.
-
-\section{Clarified Facts}
-1. That [STATE THE CORRECT FACTUAL BACKGROUND].
-2. That [STATE MATERIAL OMISSION OR MISCHARACTERISATION].
-3. That my client has at all times acted in accordance with law and contractual obligations.
-
-\section{Legal Response}
-Your claims are misconceived in law and on facts for reasons including [STATE KEY LEGAL DEFENCE].
-
-\section{Reservation of Rights}
-My client reserves all rights and remedies available in law and equity.
-
-\section{Without Prejudice Resolution}
-Without prejudice to the above, my client remains willing to discuss an amicable resolution on terms acceptable in law.
-
-\end{document}`,
-  },
-  {
-    id: 'legal-memo',
-    name: 'Legal Memo',
+    description: 'A defensive Indian-law response notice with admissions, denials, factual corrections, and a settlement reservation.',
+    title: 'REPLY TO LEGAL NOTICE',
+    author: 'On behalf of [CLIENT NAME]',
+    sections: [
+      { heading: 'Reference', body: `This reply is issued on behalf of my client, [CLIENT NAME], in response to your notice dated [DATE].` },
+      { heading: 'Preliminary Objections', body: `The contents of your notice are denied except to the extent specifically admitted herein. Your notice is misconceived on facts and law and suppresses material circumstances.` },
+      { heading: 'Correct Factual Position', body: `1. That [STATE THE TRUE FACTUAL BACKGROUND].\n2. That [IDENTIFY THE SUPPRESSED OR DISTORTED FACT].\n3. That my client has complied with all lawful obligations expected in the matter.` },
+      { heading: 'Legal Response', body: `Your allegations do not disclose a sustainable cause of action in view of [DEFENCE / CONTRACTUAL CLAUSE / LIMITATION / LACK OF DEFAULT / JURISDICTIONAL BAR].` },
+      { heading: 'Without Prejudice Position', body: `Without prejudice to the above, my client remains willing to consider a lawful and commercially sensible resolution, subject to written terms.` },
+      { heading: 'Reservation of Rights', body: `My client reserves all rights and remedies, including claims for damages, injunction, costs, and proceedings against false or defamatory allegations, if any.` },
+    ],
+  }),
+  createTemplate({
+    id: 'cease-and-desist-ip-india',
+    name: 'Cease and Desist Notice (IP / Defamation)',
+    shortName: 'C&D',
+    category: 'Pre-litigation',
+    description: 'A takedown-style notice for trademark misuse, copyright infringement, passing off, online impersonation, or defamation in India.',
+    title: 'CEASE AND DESIST NOTICE',
+    author: '[ADVOCATE / BRAND PROTECTION TEAM]',
+    sections: [
+      { heading: 'Rights Asserted', body: `My client, [RIGHTS HOLDER], is the lawful proprietor / owner / prior user of [MARK / WORK / CONTENT / REPUTATIONAL INTEREST], details whereof are as follows: [DETAILS].` },
+      { heading: 'Infringing Conduct', body: `It has come to my client's knowledge that you are using / publishing / circulating / hosting / selling [INFRINGING MATERIAL] through [PLATFORM / STORE / WEBSITE / SOCIAL HANDLE].` },
+      { heading: 'Grounds', body: `Your conduct amounts to infringement / passing off / misrepresentation / publication of false statements and is actionable under applicable intellectual property and civil laws in India.` },
+      { heading: 'Immediate Demands', body: `You are called upon to: \n1. Immediately cease the impugned use.\n2. Remove all listings, posts, pages, and promotional material.\n3. Disclose revenue, inventory, and counterparties connected with the impugned conduct.\n4. Confirm compliance in writing within [NUMBER] days.` },
+      { heading: 'Failure Clause', body: `If you fail to comply, my client shall pursue injunction, damages, rendition of accounts, blocking / takedown directions, and all other remedies before the competent forum.` },
+    ],
+  }),
+  createTemplate({
+    id: 'legal-memo-india',
+    name: 'Legal Memo (India)',
     shortName: 'Memo',
     category: 'Advisory',
-    description: 'An internal advisory memo for issues, analysis, risk, and recommended action.',
-    source: String.raw`\documentclass[12pt]{article}
-\title{LEGAL MEMORANDUM}
-\author{Prepared for: [CLIENT / PARTNER]}
-\date{[DATE]}
-
-\begin{document}
-\maketitle
-
-\section{Question Presented}
-[STATE THE LEGAL QUESTION IN ONE OR TWO SENTENCES.]
-
-\section{Short Answer}
-[STATE THE PRACTICAL ANSWER AND LIKELY OUTCOME.]
-
-\section{Facts}
-[SUMMARISE THE MATERIAL FACTS RELEVANT TO THE QUESTION.]
-
-\section{Applicable Law}
-[IDENTIFY STATUTES, RULES, CONTRACTUAL CLAUSES, AND CASE LAW.]
-
-\section{Analysis}
-[APPLY THE LAW TO THE FACTS. DEAL WITH BOTH SUPPORTING AND ADVERSE POINTS.]
-
-\section{Risk Assessment}
-[SET OUT LITIGATION, COMMERCIAL, TIMELINE, AND EVIDENTIARY RISKS.]
-
-\section{Recommendation}
-[STATE THE RECOMMENDED NEXT STEPS.]
-
-\end{document}`,
-  },
-  {
-    id: 'opinion-letter',
-    name: 'Opinion Letter',
+    description: 'An internal Indian-law advisory memo covering issue framing, statutory analysis, case-law risks, and practical next steps.',
+    title: 'LEGAL MEMORANDUM',
+    author: 'Prepared for: [CLIENT / PARTNER / TEAM]',
+    sections: [
+      { heading: 'Question Presented', body: `[STATE THE QUESTION ARISING UNDER INDIAN LAW.]` },
+      { heading: 'Short Answer', body: `[STATE THE PRACTICAL CONCLUSION, INCLUDING LIKELY PROCESS AND RISK.]` },
+      { heading: 'Relevant Facts', body: `[SUMMARISE ONLY THE FACTS THAT MAY CHANGE THE LEGAL OUTCOME.]` },
+      { heading: 'Applicable Indian Law', body: `[IDENTIFY CONSTITUTIONAL PROVISIONS, STATUTES, SUBORDINATE LEGISLATION, AND LEADING PRECEDENTS.]` },
+      { heading: 'Analysis', body: `[APPLY THE LAW TO THE FACTS. ADDRESS JURISDICTION, LIMITATION, MAINTAINABILITY, EVIDENCE, AND REMEDIES.]` },
+      { heading: 'Risk Matrix', body: `1. Merits risk: [LOW / MEDIUM / HIGH].\n2. Procedural risk: [LOW / MEDIUM / HIGH].\n3. Enforcement / execution risk: [LOW / MEDIUM / HIGH].\n4. Commercial / reputational risk: [LOW / MEDIUM / HIGH].` },
+      { heading: 'Recommendation', body: `[STATE THE PREFERRED COURSE OF ACTION, TIMELINE, AND DOCUMENT CHECKLIST.]` },
+    ],
+  }),
+  createTemplate({
+    id: 'opinion-letter-india',
+    name: 'Legal Opinion (India)',
     shortName: 'Opinion',
     category: 'Advisory',
-    description: 'A client-facing legal opinion with issue framing, assumptions, and reasoned conclusions.',
-    source: String.raw`\documentclass[12pt]{article}
-\title{LEGAL OPINION}
-\author{Issued by [LAWYER / FIRM]}
-\date{[DATE]}
-
-\begin{document}
-\maketitle
-
-\section{Instructions}
-This opinion is issued on the basis of instructions and documents provided by [CLIENT NAME].
-
-\section{Questions for Opinion}
-1. Whether [QUESTION 1].
-2. Whether [QUESTION 2].
-
-\section{Assumptions and Scope}
-This opinion proceeds on the assumption that [STATE MATERIAL ASSUMPTIONS] and is limited to [SCOPE].
-
-\section{Relevant Law}
-[SET OUT THE GOVERNING STATUTES, RULES, AND AUTHORITIES.]
-
-\section{Opinion}
-[PROVIDE THE REASONED VIEW AND QUALIFICATIONS.]
-
-\section{Recommended Action}
-[SET OUT PRACTICAL NEXT STEPS.]
-
-\end{document}`,
-  },
-  {
-    id: 'petition',
-    name: 'Petition',
-    shortName: 'Petition',
-    category: 'Litigation',
-    description: 'A litigation petition skeleton with parties, facts, grounds, and prayer.',
-    source: String.raw`\documentclass[12pt]{article}
-\title{IN THE [COURT / TRIBUNAL] AT [PLACE]}
-\author{[PETITIONER] Versus [RESPONDENT]}
-\date{[DATE]}
-
-\begin{document}
-\maketitle
-
-\section{Cause Title}
-[PETITIONER NAME AND DETAILS]
-
-Versus
-
-[RESPONDENT NAME AND DETAILS]
-
-\section{Jurisdiction}
-This Hon'ble Court has jurisdiction to entertain the present petition because [STATE JURISDICTIONAL BASIS].
-
-\section{Facts}
-1. That [MATERIAL FACT 1].
-2. That [MATERIAL FACT 2].
-3. That the cause of action arose on [DATE / PERIOD].
-
-\section{Grounds}
-A. Because [LEGAL GROUND 1].
-B. Because [LEGAL GROUND 2].
-C. Because the impugned action is arbitrary, unlawful, and contrary to settled legal principles.
-
-\section{Interim Relief}
-Pending final disposal, the Petitioner prays that this Hon'ble Court may [STATE INTERIM RELIEF].
-
-\section{Prayer}
-In view of the facts and grounds stated above, it is most respectfully prayed that this Hon'ble Court may be pleased to:
-
-1. [PRIMARY RELIEF].
-2. [ANCILLARY RELIEF].
-3. Pass such other order as this Hon'ble Court may deem fit and proper.
-
-\section{Annexures}
-Annexure P-1: [DESCRIPTION]
-Annexure P-2: [DESCRIPTION]
-
-\end{document}`,
-  },
-  {
-    id: 'written-statement',
-    name: 'Written Statement',
-    shortName: 'Statement',
-    category: 'Litigation',
-    description: 'A defendant-side pleading with preliminary objections, para-wise replies, and prayer.',
-    source: String.raw`\documentclass[12pt]{article}
-\title{WRITTEN STATEMENT}
-\author{Filed by [DEFENDANT NAME]}
-\date{[DATE]}
-
-\begin{document}
-\maketitle
-
-\section{Introductory Submission}
-The Defendant submits this written statement in answer to the plaint filed by the Plaintiff.
-
-\section{Preliminary Objections}
-1. That the suit is not maintainable for [GROUND].
-2. That this Hon'ble Court lacks [JURISDICTION / CAUSE OF ACTION / LIMITATION COMPLIANCE].
-
-\section{Para-wise Reply}
-Paragraph 1: [ADMIT / DENY / PARTLY ADMIT WITH EXPLANATION].
-
-Paragraph 2: [ADMIT / DENY / PARTLY ADMIT WITH EXPLANATION].
-
-\section{Additional Facts}
-[SET OUT DEFENDANT'S POSITIVE CASE.]
-
-\section{Legal Defence}
-[STATE CONTRACTUAL, STATUTORY, PROCEDURAL, OR EQUITABLE DEFENCES.]
-
-\section{Prayer}
-It is respectfully prayed that the suit be dismissed with costs and such further orders as this Hon'ble Court deems fit.
-
-\end{document}`,
-  },
-  {
-    id: 'bail-application',
-    name: 'Bail Application',
-    shortName: 'Bail',
-    category: 'Criminal',
-    description: 'A criminal application format for facts, grounds for bail, and undertakings.',
-    source: String.raw`\documentclass[12pt]{article}
-\title{APPLICATION FOR BAIL}
-\author{Filed by [ACCUSED NAME]}
-\date{[DATE]}
-
-\begin{document}
-\maketitle
-
-\section{Case Particulars}
-FIR No. [NUMBER], Police Station [NAME], under Sections [SECTIONS].
-
-\section{Applicant Background}
-[STATE PERSONAL DETAILS, CUSTODY PERIOD, AND RELEVANT CIRCUMSTANCES.]
-
-\section{Facts}
-[SUMMARISE THE PROSECUTION CASE BRIEFLY AND FAIRLY.]
-
-\section{Grounds for Bail}
-1. That the Applicant is innocent and has been falsely implicated.
-2. That investigation is [COMPLETE / SUBSTANTIALLY COMPLETE].
-3. That no useful purpose will be served by continued incarceration.
-
-\section{Undertakings}
-The Applicant undertakes to cooperate with investigation and abide by all conditions imposed by this Hon'ble Court.
-
-\section{Prayer}
-It is respectfully prayed that the Applicant be released on bail on such terms as this Hon'ble Court deems fit.
-
-\end{document}`,
-  },
-  {
-    id: 'brief',
-    name: 'Brief / Written Submission',
-    shortName: 'Brief',
-    category: 'Litigation',
-    description: 'A court-ready submission outline for issues, propositions, and relief.',
-    source: String.raw`\documentclass[12pt]{article}
-\title{WRITTEN SUBMISSIONS}
-\author{On behalf of [PARTY NAME]}
-\date{[DATE]}
-
-\begin{document}
-\maketitle
-
-\section{Overview}
-[STATE THE CORE POSITION OF THE PARTY IN A CONCISE OPENING.]
-
-\section{Issues}
-1. Whether [ISSUE 1].
-2. Whether [ISSUE 2].
-
-\section{Statement of Facts}
-[SET OUT THE FACTUAL BACKGROUND IN CHRONOLOGICAL ORDER.]
-
-\section{Submissions}
-I. [FIRST PROPOSITION OF LAW]
-
-[DEVELOP THE ARGUMENT WITH FACTS, LAW, AND AUTHORITIES.]
-
-II. [SECOND PROPOSITION OF LAW]
-
-[DEVELOP THE ARGUMENT WITH FACTS, LAW, AND AUTHORITIES.]
-
-\section{Authorities}
-1. [CASE / STATUTE / RULE]
-2. [CASE / STATUTE / RULE]
-
-\section{Relief Sought}
-For the reasons stated above, it is respectfully submitted that [STATE RELIEF / OUTCOME SOUGHT].
-
-\end{document}`,
-  },
-  {
-    id: 'affidavit',
-    name: 'Affidavit',
+    description: 'A client-facing Indian legal opinion with assumptions, scope limits, statutory framing, and a reasoned conclusion.',
+    title: 'LEGAL OPINION',
+    author: 'Issued by [ADVOCATE / LAW FIRM]',
+    sections: [
+      { heading: 'Instructions and Documents', body: `This opinion is rendered on the basis of the instructions received from [CLIENT NAME] and the documents listed below: [LIST].` },
+      { heading: 'Questions for Opinion', body: `1. Whether [QUESTION 1].\n2. Whether [QUESTION 2].` },
+      { heading: 'Assumptions and Scope', body: `This opinion is limited to the laws of India in force on the date hereof and proceeds on the assumption that the supplied documents are complete and genuine.` },
+      { heading: 'Relevant Law', body: `[IDENTIFY THE GOVERNING CONSTITUTIONAL, CIVIL, CRIMINAL, REGULATORY, OR COMMERCIAL FRAMEWORK.]` },
+      { heading: 'Opinion', body: `[SET OUT THE REASONED VIEW, INCLUDING QUALIFICATIONS, UNCERTAINTIES, AND POSSIBLE CONTRARY ARGUMENTS.]` },
+      { heading: 'Recommended Action', body: `[SET OUT NEXT STEPS, EVIDENCE TO BE GATHERED, AND WHETHER NOTICE / FILING / NEGOTIATION IS ADVISED.]` },
+    ],
+  }),
+  createTemplate({
+    id: 'contract-review-note-india',
+    name: 'Contract Review Note (India)',
+    shortName: 'Review',
+    category: 'Advisory',
+    description: 'A clause-by-clause Indian contract review note for legal red flags, negotiation asks, tax / compliance touchpoints, and fallback positions.',
+    title: 'CONTRACT REVIEW NOTE',
+    author: 'Prepared for [CLIENT / BUSINESS TEAM]',
+    sections: [
+      { heading: 'Document Reviewed', body: `[IDENTIFY THE AGREEMENT, VERSION, COUNTERPARTY, AND COMMERCIAL CONTEXT.]` },
+      { heading: 'Priority Issues', body: `1. [ISSUE 1].\n2. [ISSUE 2].\n3. [ISSUE 3].` },
+      { heading: 'Indian Law Points', body: `[NOTE ENFORCEABILITY ISSUES UNDER THE INDIAN CONTRACT ACT, STAMPING / REGISTRATION ISSUES, TAX, EMPLOYMENT, DATA, OR SECTORAL COMPLIANCE.]` },
+      { heading: 'Clause Comments', body: `[SUMMARISE COMMENTS CLAUSE BY CLAUSE WITH RECOMMENDED DRAFTING.]` },
+      { heading: 'Negotiation Position', body: `Must-have asks: [LIST].\nFallbacks: [LIST].\nWalk-away points: [LIST].` },
+      { heading: 'Recommendation', body: `[STATE WHETHER TO SIGN, REVISE, OR ESCALATE.]` },
+    ],
+  }),
+  createTemplate({
+    id: 'affidavit-india',
+    name: 'Affidavit (India)',
     shortName: 'Affidavit',
     category: 'Evidence',
-    description: 'A sworn statement format for facts, verification, and annexure references.',
-    source: String.raw`\documentclass[12pt]{article}
-\title{AFFIDAVIT}
-\author{[DEPONENT NAME]}
-\date{[DATE]}
-
-\begin{document}
-\maketitle
-
-\section{Deponent Details}
-I, [NAME], aged about [AGE] years, residing at [ADDRESS], do hereby solemnly affirm and state as under:
-
-\section{Statement of Facts}
-1. That [FACT 1].
-2. That [FACT 2].
-3. That the contents of this affidavit are true to my knowledge and belief.
-
-\section{Documents Relied Upon}
-Annexure A: [DESCRIPTION]
-Annexure B: [DESCRIPTION]
-
-\section{Verification}
-Verified at [PLACE] on [DATE] that the contents of this affidavit are true and correct to my knowledge and belief.
-
-\end{document}`,
-  },
-  {
-    id: 'board-resolution',
-    name: 'Board Resolution',
-    shortName: 'Resolution',
+    description: 'A general affidavit format used in Indian courts and administrative filings, with verification and annexures.',
+    title: 'AFFIDAVIT',
+    author: '[DEPONENT NAME]',
+    sections: [
+      { heading: 'Deponent Particulars', body: `I, [NAME], aged about [AGE] years, son / daughter / spouse of [NAME], residing at [ADDRESS], do hereby solemnly affirm and state as under:` },
+      { heading: 'Statements on Oath', body: `1. That I am [CAPACITY / RELATION TO CASE].\n2. That I am conversant with the facts of the present matter and competent to swear this affidavit.\n3. That the statements made herein are true to my knowledge except those based on information, which I believe to be true.` },
+      { heading: 'Documents Relied Upon', body: `Annexure A: [DESCRIPTION].\nAnnexure B: [DESCRIPTION].` },
+      { heading: 'Verification', body: `Verified at [PLACE] on [DATE] that the contents of paragraphs [NUMBERS] are true to my knowledge and belief and that nothing material has been concealed therefrom.` },
+    ],
+  }),
+  createTemplate({
+    id: 'vakalatnama-india',
+    name: 'Vakalatnama',
+    shortName: 'Vakalat',
+    category: 'Litigation',
+    description: 'An authority in favour of advocates to appear, act, file, settle, withdraw, and receive documents before Indian courts and tribunals.',
+    title: 'VAKALATNAMA',
+    author: '[CLIENT / PARTY NAME]',
+    sections: [
+      { heading: 'Court and Cause Title', body: `In the matter of [CASE TITLE / PROPOSED PROCEEDING] before [COURT / TRIBUNAL / AUTHORITY].` },
+      { heading: 'Authority Granted', body: `I / We hereby appoint [ADVOCATE(S) NAME] to act, appear, plead, file pleadings, affidavits, applications, vakalat substitutions, compromise terms where authorised, obtain certified copies, and take all lawful steps in the above matter.` },
+      { heading: 'Communications and Service', body: `Service of notices, processes, and communications upon the said Advocate(s) shall be treated as service upon me / us for all procedural purposes.` },
+      { heading: 'Fee and Expenses', body: `Fees and out-of-pocket expenses shall be governed by the separate understanding between the client and the Advocate(s).` },
+      { heading: 'Execution', body: `Signed by [PARTY NAME] at [PLACE] on [DATE] in the presence of [WITNESS / ACCEPTING ADVOCATE].` },
+    ],
+  }),
+  createTemplate({
+    id: 'special-power-of-attorney-india',
+    name: 'Special Power of Attorney',
+    shortName: 'SPA',
+    category: 'Corporate / Personal',
+    description: 'A narrowly scoped Indian special power of attorney for litigation, property, banking, regulatory, or transactional acts.',
+    title: 'SPECIAL POWER OF ATTORNEY',
+    author: '[EXECUTANT / PRINCIPAL]',
+    sections: [
+      { heading: 'Principal and Attorney', body: `I / We, [PRINCIPAL DETAILS], hereby appoint [ATTORNEY DETAILS] to be my / our lawful attorney for the limited purposes set out below.` },
+      { heading: 'Specific Powers', body: `The Attorney is authorised to [FILE / SIGN / REPRESENT / COLLECT / EXECUTE / APPEAR / DEPOSE] strictly in connection with [MATTER / PROPERTY / CASE / TRANSACTION].` },
+      { heading: 'Limitations', body: `This authority does not include any power to sell, mortgage, compromise, or create third-party rights except to the express extent stated herein.` },
+      { heading: 'Ratification', body: `The Principal agrees to ratify lawful acts done by the Attorney within the scope of this instrument.` },
+      { heading: 'Revocation', body: `This instrument shall remain valid until [DATE / EVENT] unless earlier revoked in writing.` },
+    ],
+  }),
+  createTemplate({
+    id: 'plaint-money-recovery-india',
+    name: 'Plaint for Recovery / Commercial Claim',
+    shortName: 'Plaint',
+    category: 'Civil Litigation',
+    description: 'A plaint structure for money recovery, invoice disputes, breach of contract, or commercial dues under Indian civil procedure.',
+    title: 'PLAINT',
+    author: '[PLAINTIFF] Versus [DEFENDANT]',
+    sections: [
+      { heading: 'Parties', body: `Plaintiff: [NAME, DESCRIPTION, ADDRESS].\nDefendant: [NAME, DESCRIPTION, ADDRESS].` },
+      { heading: 'Jurisdiction', body: `This Hon'ble Court has territorial and pecuniary jurisdiction because [CAUSE OF ACTION / PLACE OF BUSINESS / PLACE OF PAYMENT / CONTRACTUAL JURISDICTION].` },
+      { heading: 'Facts Constituting Cause of Action', body: `1. That [TRANSACTION / ENGAGEMENT DETAILS].\n2. That the Plaintiff performed its obligations.\n3. That the Defendant failed to pay / perform despite demand.\n4. That the cause of action first arose on [DATE] and continues to subsist.` },
+      { heading: 'Cause of Action and Limitation', body: `The suit is within limitation and is maintainable under the applicable provisions of the Code of Civil Procedure, 1908 and substantive law governing the claim.` },
+      { heading: 'Reliefs Claimed', body: `1. Decree for Rs. [AMOUNT].\n2. Interest at [RATE] per annum from [DATE] till realization.\n3. Costs of the suit.\n4. Such other relief as this Hon'ble Court may deem fit.` },
+      { heading: 'List of Documents', body: `1. Contract / purchase order.\n2. Invoices.\n3. Ledger / statement of account.\n4. Notice correspondence.\n5. Authorisation documents.` },
+    ],
+  }),
+  createTemplate({
+    id: 'written-statement-india',
+    name: 'Written Statement (India)',
+    shortName: 'WS',
+    category: 'Civil Litigation',
+    description: 'A defendant-side Indian civil pleading with preliminary objections, para-wise denials, and a positive factual case.',
+    title: 'WRITTEN STATEMENT',
+    author: 'Filed by [DEFENDANT NAME]',
+    sections: [
+      { heading: 'Introductory Submission', body: `The Defendant submits the present written statement in response to the plaint filed by the Plaintiff and denies all allegations except those expressly admitted herein.` },
+      { heading: 'Preliminary Objections', body: `1. That the suit is not maintainable for [GROUND].\n2. That this Hon'ble Court lacks [TERRITORIAL / PECUNIARY / SUBJECT-MATTER] jurisdiction.\n3. That the suit is barred by limitation / waiver / estoppel / arbitration agreement / statutory bar.` },
+      { heading: 'Para-wise Reply', body: `Paragraph 1: [ADMIT / DENY / PARTLY ADMIT WITH EXPLANATION].\nParagraph 2: [ADMIT / DENY / PARTLY ADMIT WITH EXPLANATION].\nParagraph 3: [ADMIT / DENY / PARTLY ADMIT WITH EXPLANATION].` },
+      { heading: 'Defendant Case', body: `[STATE THE DEFENDANT'S AFFIRMATIVE VERSION, PAYMENTS MADE, DEFECTS, COUNTERCLAIM BASIS, OR OTHER POSITIVE FACTS.]` },
+      { heading: 'Prayer', body: `It is respectfully prayed that the suit be dismissed with costs and such further orders as this Hon'ble Court may deem fit in the facts of the case.` },
+    ],
+  }),
+  createTemplate({
+    id: 'temporary-injunction-application-india',
+    name: 'Interim Injunction Application',
+    shortName: 'Injunction',
+    category: 'Civil Litigation',
+    description: 'An interim relief application for status quo, restraint, possession protection, IP restraint, or payment security in Indian civil proceedings.',
+    title: 'APPLICATION FOR AD-INTERIM / TEMPORARY INJUNCTION',
+    author: 'In [SUIT / PETITION TITLE]',
+    sections: [
+      { heading: 'Background', body: `The Applicant has instituted the accompanying suit / petition challenging [IMPUGNED ACTION / THREATENED CONDUCT].` },
+      { heading: 'Urgency', body: `Immediate protection is required because the Respondent is likely to [ALIENATE PROPERTY / ENCASH SECURITY / TERMINATE RIGHTS / PUBLISH / DEMOLISH / INTERFERE].` },
+      { heading: 'Grounds for Interim Relief', body: `1. Prima facie case exists in favour of the Applicant.\n2. Balance of convenience lies in favour of protection.\n3. Irreparable injury will be caused if relief is denied.\n4. The Respondent can be compensated only inadequately or not at all by damages.` },
+      { heading: 'Interim Prayer', body: `Pending disposal of the main proceedings, kindly restrain the Respondent from [ACTS TO BE RESTRAINED] and / or direct maintenance of status quo with respect to [PROPERTY / RIGHTS / ACCOUNTS].` },
+      { heading: 'Undertaking', body: `The Applicant undertakes to abide by any terms this Hon'ble Court may impose while granting ad-interim protection.` },
+    ],
+  }),
+  createTemplate({
+    id: 'writ-petition-article-226',
+    name: 'Writ Petition under Article 226',
+    shortName: 'Art. 226',
+    category: 'Constitutional',
+    description: 'A High Court writ template for certiorari, mandamus, habeas corpus, prohibition, or quo warranto against State action in India.',
+    title: 'IN THE HIGH COURT OF [STATE] AT [PLACE]',
+    author: '[PETITIONER] Versus [RESPONDENT(S)]',
+    sections: [
+      { heading: 'Parties', body: `Petitioner: [NAME AND DESCRIPTION].\nRespondent No. 1: [STATE / AUTHORITY].\nRespondent No. 2 onwards: [OFFICERS / BODIES / BENEFICIARIES].` },
+      { heading: 'Jurisdiction and Maintainability', body: `The present petition is being filed under Article 226 of the Constitution of India as the impugned action has been taken by a State / instrumentality / public authority amenable to writ jurisdiction and no equally efficacious alternate remedy is available / the case falls within a recognised exception.` },
+      { heading: 'Facts in Brief', body: `1. That [MATERIAL BACKGROUND].\n2. That the impugned order / inaction dated [DATE] affects the Petitioner's legal / fundamental rights.\n3. That representations dated [DATES], if any, have not yielded relief.` },
+      { heading: 'Grounds', body: `A. Because the impugned action is arbitrary, unreasonable, and violative of Articles 14 and / or 21.\nB. Because the authority acted without jurisdiction / in excess of jurisdiction.\nC. Because principles of natural justice were violated.\nD. Because the decision is unsupported by evidence / reasons / statutory power.` },
+      { heading: 'Interim Relief', body: `Pending final disposal, the Petitioner seeks stay of operation of [IMPUGNED ORDER] and protection against coercive steps.` },
+      { heading: 'Final Prayer', body: `Issue an appropriate writ, order, or direction quashing [IMPUGNED ACTION], directing [PUBLIC DUTY TO BE PERFORMED], and granting any consequential reliefs deemed just.` },
+    ],
+  }),
+  createTemplate({
+    id: 'writ-petition-article-32',
+    name: 'Writ Petition under Article 32',
+    shortName: 'Art. 32',
+    category: 'Constitutional',
+    description: 'A Supreme Court fundamental-rights writ template under Article 32 of the Constitution of India.',
+    title: 'IN THE SUPREME COURT OF INDIA',
+    author: 'WRIT PETITION (CIVIL / CRIMINAL) UNDER ARTICLE 32',
+    sections: [
+      { heading: 'Petitioner and Respondents', body: `Petitioner: [NAME, DESCRIPTION].\nRespondent(s): [UNION / STATE / AUTHORITY / AGENCY].` },
+      { heading: 'Fundamental Rights Invoked', body: `The present petition is filed for enforcement of the Petitioner's fundamental rights guaranteed under Articles [LIST], which stand violated by [IMPUGNED ACTION / INACTION].` },
+      { heading: 'Facts', body: `1. That [BACKGROUND].\n2. That on [DATE], [IMPACTFUL EVENT].\n3. That the violation is continuing / imminent and requires immediate intervention.` },
+      { heading: 'Grounds', body: `A. Because the impugned measure violates the Petitioner's fundamental rights.\nB. Because the restriction / deprivation lacks legality, necessity, proportionality, or procedural fairness.\nC. Because no other remedy is equally efficacious for immediate constitutional protection.` },
+      { heading: 'Interim Prayer', body: `Grant immediate ad-interim protection by [STAY / RELEASE / RESTRAINT / DIRECTION] pending hearing.` },
+      { heading: 'Main Prayer', body: `Issue an appropriate writ, order, or direction for enforcement of the Petitioner's fundamental rights and pass consequential orders in the interest of justice.` },
+    ],
+  }),
+  createTemplate({
+    id: 'special-leave-petition-india',
+    name: 'Special Leave Petition under Article 136',
+    shortName: 'SLP',
+    category: 'Constitutional / Appellate',
+    description: 'A Supreme Court SLP skeleton challenging a High Court or tribunal judgment under Article 136 of the Constitution.',
+    title: 'SPECIAL LEAVE PETITION',
+    author: 'IN THE SUPREME COURT OF INDIA',
+    sections: [
+      { heading: 'Impugned Judgment', body: `This petition seeks special leave to appeal against the final judgment / order dated [DATE] passed by [COURT / TRIBUNAL] in [CASE DETAILS].` },
+      { heading: 'Questions of Law', body: `1. Whether [QUESTION OF LAW 1].\n2. Whether [QUESTION OF LAW 2].` },
+      { heading: 'Synopsis of Facts', body: `[PROVIDE A CONCISE TIMELINE OF FACTS, PROCEEDINGS, AND THE DECISION CHAIN.]` },
+      { heading: 'Grounds for Special Leave', body: `A. Because the impugned judgment raises substantial questions of law of general / public importance.\nB. Because the impugned judgment is contrary to settled precedent / statutory interpretation.\nC. Because grave injustice has resulted from [ERROR OF LAW / PROCEDURE / APPRECIATION OF MATERIAL].` },
+      { heading: 'Interim Relief', body: `Pending disposal, grant stay of operation / implementation / coercive steps flowing from the impugned judgment.` },
+      { heading: 'Prayer', body: `Grant special leave to appeal, set aside the impugned judgment, and pass such further orders as may be deemed fit.` },
+    ],
+  }),
+  createTemplate({
+    id: 'review-petition-india',
+    name: 'Review Petition',
+    shortName: 'Review',
+    category: 'Constitutional / Appellate',
+    description: 'A review petition format for apparent error, overlooked law, or manifest injustice before the same court.',
+    title: 'REVIEW PETITION',
+    author: 'In [CASE TITLE / NUMBER]',
+    sections: [
+      { heading: 'Order Sought to be Reviewed', body: `The present review petition is directed against the judgment / order dated [DATE] passed in [CASE DETAILS].` },
+      { heading: 'Grounds for Review', body: `1. There is an error apparent on the face of the record.\n2. Material statutory provision / precedent / document was not noticed.\n3. Manifest injustice has resulted if the order remains uncorrected.` },
+      { heading: 'Review Narrative', body: `[EXPLAIN NARROWLY WHY THE ORDER MEETS THE HIGH THRESHOLD FOR REVIEW.]` },
+      { heading: 'Delay, If Any', body: `If filed beyond time, the delay occurred due to [CAUSE] and deserves condonation in the interest of justice.` },
+      { heading: 'Prayer', body: `Review / recall / modify the order dated [DATE] and restore / rehear / correct the matter in the manner prayed for.` },
+    ],
+  }),
+  createTemplate({
+    id: 'arbitration-section-9-petition-india',
+    name: 'Section 9 Arbitration Petition',
+    shortName: 'S.9',
+    category: 'Arbitration',
+    description: 'A court petition for interim measures before, during, or after arbitration under the Arbitration and Conciliation Act, 1996.',
+    title: 'PETITION UNDER SECTION 9 OF THE ARBITRATION AND CONCILIATION ACT, 1996',
+    author: '[PETITIONER] Versus [RESPONDENT]',
+    sections: [
+      { heading: 'Arbitration Agreement', body: `The parties entered into [CONTRACT NAME] dated [DATE], which contains an arbitration agreement at Clause [NUMBER].` },
+      { heading: 'Disputes', body: `Disputes have arisen concerning [SUBJECT MATTER], and the Petitioner has invoked / proposes to invoke arbitration.` },
+      { heading: 'Need for Interim Measures', body: `Immediate court protection is required to preserve the subject matter of arbitration, secure the claim, protect evidence, maintain status quo, or prevent frustration of the arbitral process.` },
+      { heading: 'Relief Grounds', body: `1. A strong prima facie arbitral claim exists.\n2. Interim protection is necessary to avoid frustration of the award.\n3. Balance of convenience and irreparable harm favour the Petitioner.` },
+      { heading: 'Prayer', body: `Grant interim measures by way of [INJUNCTION / SECURITY / PRESERVATION / RECEIVER / CUSTODIAL DIRECTION] pending arbitral proceedings or enforcement of the award.` },
+    ],
+  }),
+  createTemplate({
+    id: 'consumer-complaint-india',
+    name: 'Consumer Complaint',
+    shortName: 'Consumer',
+    category: 'Consumer',
+    description: 'A complaint format for deficiency in service, unfair trade practice, defective goods, refund, replacement, or compensation under Indian consumer law.',
+    title: 'CONSUMER COMPLAINT',
+    author: '[COMPLAINANT] Versus [OPPOSITE PARTY]',
+    sections: [
+      { heading: 'Complainant and Opposite Party', body: `Complainant: [NAME AND ADDRESS].\nOpposite Party: [NAME, ADDRESS, AND BUSINESS DESCRIPTION].` },
+      { heading: 'Consumer Relationship', body: `The Complainant purchased / availed [GOODS / SERVICES] on [DATE] for consideration of Rs. [AMOUNT].` },
+      { heading: 'Deficiency / Defect / Unfair Practice', body: `1. That [DESCRIBE THE DEFECT OR DEFICIENCY].\n2. That repeated requests / complaint tickets dated [DATES] were not properly resolved.\n3. That the Opposite Party has caused financial loss, harassment, and inconvenience to the Complainant.` },
+      { heading: 'Jurisdiction', body: `This Hon'ble Commission has jurisdiction on account of [VALUE / LOCATION / CAUSE OF ACTION].` },
+      { heading: 'Relief Sought', body: `1. Refund / replacement / rectification.\n2. Compensation for loss and mental agony.\n3. Litigation costs.\n4. Any other relief deemed fit.` },
+      { heading: 'Supporting Documents', body: `Invoice, warranty, emails / chats, screenshots, complaint records, bank statement, and notice correspondence.` },
+    ],
+  }),
+  createTemplate({
+    id: 'cheque-bounce-complaint-india',
+    name: 'Cheque Bounce Complaint (Section 138 NI Act)',
+    shortName: 'S.138',
+    category: 'Criminal / Commercial',
+    description: 'A complaint structure for dishonour of cheque after statutory demand notice under the Negotiable Instruments Act, 1881.',
+    title: 'COMPLAINT UNDER SECTION 138 OF THE NEGOTIABLE INSTRUMENTS ACT, 1881',
+    author: '[COMPLAINANT] Versus [ACCUSED]',
+    sections: [
+      { heading: 'Parties', body: `Complainant: [NAME, ADDRESS, DESCRIPTION].\nAccused: [NAME, ADDRESS, DESCRIPTION].` },
+      { heading: 'Debt or Liability', body: `The Accused issued cheque bearing no. [NUMBER] dated [DATE] for Rs. [AMOUNT] towards discharge, in whole or in part, of a legally enforceable debt / liability.` },
+      { heading: 'Dishonour and Notice', body: `The cheque was presented within validity and dishonoured vide return memo dated [DATE] for reason [REASON]. A statutory demand notice dated [DATE] was duly issued and served, but payment was not made within the prescribed period.` },
+      { heading: 'Cause of Action', body: `The cause of action accrued upon expiry of the statutory payment period after service of demand notice and the complaint is within limitation.` },
+      { heading: 'Prayer', body: `Take cognizance, summon the Accused, punish in accordance with law, and award compensation / interim compensation as permissible.` },
+      { heading: 'Documents', body: `Cheque, return memo, demand notice, postal proof / tracking, underlying invoices / agreement / ledger.` },
+    ],
+  }),
+  createTemplate({
+    id: 'regular-bail-application-bnss',
+    name: 'Regular Bail Application (BNSS)',
+    shortName: 'Bail',
+    category: 'Criminal',
+    description: 'A post-arrest bail application aligned to the Bharatiya Nagarik Suraksha Sanhita, 2023 regime in force from July 1, 2024.',
+    title: 'APPLICATION FOR REGULAR BAIL',
+    author: 'Filed by [ACCUSED / APPLICANT]',
+    sections: [
+      { heading: 'Case Particulars', body: `FIR / Case No. [NUMBER], Police Station [NAME], under sections [BNS / SPECIAL ACT SECTIONS], presently pending before [COURT].` },
+      { heading: 'Custody and Background', body: `The Applicant was arrested on [DATE], is in judicial / police custody since then, and has roots in society at [PLACE].` },
+      { heading: 'Prosecution Case in Brief', body: `[SUMMARISE FAIRLY THE ALLEGATIONS WITHOUT MAKING ADMISSIONS.]` },
+      { heading: 'Grounds for Bail', body: `1. The Applicant is innocent and has been falsely implicated.\n2. Investigation is complete / substantially complete and custodial interrogation is no longer required.\n3. The Applicant is not a flight risk and shall cooperate with trial.\n4. Continued incarceration will serve no useful purpose.\n5. The case is fit for bail under the applicable bail provisions of the Bharatiya Nagarik Suraksha Sanhita, 2023.` },
+      { heading: 'Undertakings', body: `The Applicant undertakes to join investigation when called, not influence witnesses, not tamper with evidence, and comply with all conditions imposed by this Hon'ble Court.` },
+      { heading: 'Prayer', body: `It is respectfully prayed that the Applicant be enlarged on regular bail on such terms as this Hon'ble Court deems fit.` },
+    ],
+  }),
+  createTemplate({
+    id: 'anticipatory-bail-application-bnss',
+    name: 'Anticipatory Bail Application (BNSS)',
+    shortName: 'ABA',
+    category: 'Criminal',
+    description: 'A pre-arrest bail application for a person apprehending arrest under the current BNSS framework.',
+    title: 'APPLICATION FOR ANTICIPATORY BAIL',
+    author: 'Filed by [APPLICANT NAME]',
+    sections: [
+      { heading: 'Apprehension of Arrest', body: `The Applicant has reason to believe that he / she may be arrested in connection with FIR / complaint / inquiry concerning [BRIEF DESCRIPTION].` },
+      { heading: 'Applicant Background', body: `The Applicant is a law-abiding citizen with permanent residence / employment / business at [PLACE] and has no intention to evade process.` },
+      { heading: 'Grounds', body: `1. The allegations arise from [MATRIMONIAL / PROPERTY / BUSINESS / POLITICAL / CIVIL] disputes and do not require custodial interrogation.\n2. The Applicant is willing to cooperate with the investigation.\n3. Arrest would cause irreparable loss to liberty, reputation, family, or business.\n4. The matter merits protection under the applicable anticipatory bail provision of the Bharatiya Nagarik Suraksha Sanhita, 2023.` },
+      { heading: 'Conditions Offered', body: `The Applicant is willing to appear before the Investigating Officer, furnish sureties, share mobile / address details, and comply with reasonable conditions.` },
+      { heading: 'Prayer', body: `Direct that in the event of arrest, the Applicant be released on bail on such terms as this Hon'ble Court may deem fit.` },
+    ],
+  }),
+  createTemplate({
+    id: 'criminal-complaint-private-india',
+    name: 'Private Criminal Complaint',
+    shortName: 'Complaint',
+    category: 'Criminal',
+    description: 'A magistrate complaint format for offences pursued through a private complaint with witness and document support.',
+    title: 'CRIMINAL COMPLAINT',
+    author: '[COMPLAINANT] Versus [ACCUSED]',
+    sections: [
+      { heading: 'Parties and Jurisdiction', body: `The Complainant resides / carries on business at [PLACE]. The acts complained of occurred within the jurisdiction of this Hon'ble Court.` },
+      { heading: 'Facts Constituting Offence', body: `1. That on [DATE], the Accused [ACT / REPRESENTATION / THREAT / MISAPPROPRIATION].\n2. That the conduct was intentional and caused [LOSS / FEAR / WRONGFUL GAIN].\n3. That despite complaint / notice dated [DATE], no lawful redress has been given.` },
+      { heading: 'Offences Disclosed', body: `The above facts disclose commission of offences punishable under [APPLICABLE BNS / SPECIAL ACT SECTIONS].` },
+      { heading: 'Evidence', body: `The Complainant relies on [DOCUMENTS, ELECTRONIC RECORDS, WITNESSES, AUDIO / VIDEO, CERTIFICATES].` },
+      { heading: 'Prayer', body: `Take cognizance, examine the Complainant and witnesses, summon the Accused, and proceed in accordance with law.` },
+    ],
+  }),
+  createTemplate({
+    id: 'maintenance-petition-bnss',
+    name: 'Maintenance Petition',
+    shortName: 'Maintenance',
+    category: 'Family',
+    description: 'A petition for maintenance of wife, children, or parents using the current criminal-procedure maintenance framework in India.',
+    title: 'PETITION FOR MAINTENANCE',
+    author: '[PETITIONER] Versus [RESPONDENT]',
+    sections: [
+      { heading: 'Relationship', body: `The Petitioner is the [WIFE / CHILD / PARENT] of the Respondent. The relationship and dependency particulars are as follows: [DETAILS].` },
+      { heading: 'Neglect or Refusal', body: `Despite having sufficient means, the Respondent has neglected / refused to maintain the Petitioner since [DATE / PERIOD].` },
+      { heading: 'Financial Position', body: `The Respondent earns approximately Rs. [AMOUNT] per month from [SALARY / BUSINESS / PROPERTY / OTHER SOURCES], whereas the Petitioner has no sufficient independent means for maintenance.` },
+      { heading: 'Statutory Basis', body: `The present petition is being filed under the maintenance provisions currently in force under the Bharatiya Nagarik Suraksha Sanhita, 2023, as applicable.` },
+      { heading: 'Interim and Final Relief', body: `1. Interim maintenance of Rs. [AMOUNT] per month.\n2. Final maintenance of Rs. [AMOUNT] per month.\n3. Litigation expenses of Rs. [AMOUNT].\n4. Any other appropriate relief.` },
+    ],
+  }),
+  createTemplate({
+    id: 'divorce-petition-hma',
+    name: 'Divorce Petition (Hindu Marriage Act)',
+    shortName: 'Divorce',
+    category: 'Family',
+    description: 'A contested divorce petition structure for parties governed by the Hindu Marriage Act, 1955.',
+    title: 'PETITION FOR DIVORCE',
+    author: '[PETITIONER] Versus [RESPONDENT]',
+    sections: [
+      { heading: 'Marriage Details', body: `The marriage between the parties was solemnised on [DATE] at [PLACE] according to Hindu rites and ceremonies. The parties last resided together at [PLACE].` },
+      { heading: 'Jurisdiction', body: `This Hon'ble Family Court has jurisdiction because the marriage was solemnised / parties last resided together / the Petitioner presently resides within its jurisdiction.` },
+      { heading: 'Grounds for Divorce', body: `The present petition is filed on the ground(s) of [CRUELTY / DESERTION / ADULTERY / CONVERSION / MENTAL DISORDER / OTHER APPLICABLE GROUND], particulars whereof are as follows: [DETAILS].` },
+      { heading: 'Children and Ancillary Issues', body: `Children of the marriage, if any: [DETAILS]. Custody / visitation / education / maintenance position: [DETAILS].` },
+      { heading: 'No Collusion Statement', body: `The petition is not presented in collusion with the Respondent and no other legal impediment bars the relief sought.` },
+      { heading: 'Prayer', body: `Pass a decree of divorce, and grant consequential relief regarding custody, maintenance, stridhan, residence, or costs as may be appropriate.` },
+    ],
+  }),
+  createTemplate({
+    id: 'restitution-conjugal-rights-hma',
+    name: 'Restitution of Conjugal Rights Petition',
+    shortName: 'RCR',
+    category: 'Family',
+    description: 'A petition under the Hindu Marriage Act seeking restitution where one spouse has withdrawn from society without reasonable cause.',
+    title: 'PETITION FOR RESTITUTION OF CONJUGAL RIGHTS',
+    author: '[PETITIONER] Versus [RESPONDENT]',
+    sections: [
+      { heading: 'Marriage and Separation', body: `The parties were married on [DATE] and cohabited at [PLACE]. On or about [DATE], the Respondent withdrew from the society of the Petitioner.` },
+      { heading: 'Absence of Reasonable Cause', body: `The withdrawal is without reasonable excuse, despite repeated efforts by the Petitioner and intervention by family / community members.` },
+      { heading: 'Efforts at Reconciliation', body: `[DETAIL ALL ATTEMPTS TO RESTORE COHABITATION AND THE RESPONDENT'S RESPONSE.]` },
+      { heading: 'Prayer', body: `Pass a decree for restitution of conjugal rights and such further orders as may be just, including mediation / counselling directions if considered appropriate.` },
+    ],
+  }),
+  createTemplate({
+    id: 'partition-suit-india',
+    name: 'Partition Suit',
+    shortName: 'Partition',
+    category: 'Property',
+    description: 'A civil suit structure for partition, separate possession, mesne profits, and injunction relating to co-owned property in India.',
+    title: 'SUIT FOR PARTITION AND SEPARATE POSSESSION',
+    author: '[PLAINTIFF] Versus [DEFENDANT(S)]',
+    sections: [
+      { heading: 'Property and Parties', body: `The suit concerns immovable property bearing [DESCRIPTION / ADDRESS / KHASRA / SURVEY DETAILS]. The parties are co-owners / coparceners / legal heirs having shares as follows: [DETAILS].` },
+      { heading: 'Cause of Action', body: `Disputes have arisen because the Defendants have denied the Plaintiff's share / exclusive use / access / income entitlement and have failed to partition the property amicably.` },
+      { heading: 'Share Claimed', body: `The Plaintiff is entitled to [FRACTION / PERCENTAGE / UNDIVIDED SHARE] in the suit property by virtue of [INHERITANCE / TITLE / FAMILY ARRANGEMENT / PURCHASE].` },
+      { heading: 'Interim Protection', body: `Pending final partition, restrain the Defendants from alienating, encumbering, altering, or creating third-party rights in the property.` },
+      { heading: 'Prayer', body: `1. Pass a preliminary decree declaring shares.\n2. Pass a final decree for partition by metes and bounds / sale and distribution, as applicable.\n3. Grant possession, mesne profits, and costs.` },
+    ],
+  }),
+  createTemplate({
+    id: 'tenancy-termination-notice-tpa',
+    name: 'Tenancy Termination Notice',
+    shortName: 'Tenancy',
+    category: 'Property',
+    description: 'A lease / tenancy termination notice referencing Indian property-law principles and contractual defaults.',
+    title: 'NOTICE OF TERMINATION OF TENANCY / LEASE',
+    author: '[LANDLORD / LESSOR / ADVOCATE]',
+    sections: [
+      { heading: 'Premises and Tenancy', body: `In respect of premises situated at [PROPERTY ADDRESS], let out to you under lease / tenancy arrangement dated [DATE].` },
+      { heading: 'Default or Termination Basis', body: `The tenancy is being terminated due to [EXPIRY / NON-PAYMENT OF RENT / BREACH OF USE CONDITIONS / UNAUTHORISED OCCUPATION / TERMINATION AT WILL] and in terms of the contract and applicable law.` },
+      { heading: 'Demand to Vacate', body: `You are called upon to hand over vacant and peaceful possession of the premises on or before [DATE] together with all keys, fittings, and access devices.` },
+      { heading: 'Dues', body: `You are further called upon to clear arrears of rent, maintenance, electricity, damages, and other charges quantified presently at Rs. [AMOUNT].` },
+      { heading: 'Consequences', body: `Failure to comply shall constrain the landlord to initiate eviction / possession / mesne profits proceedings and other lawful action at your cost and risk.` },
+    ],
+  }),
+  createTemplate({
+    id: 'sale-agreement-immovable-property-india',
+    name: 'Agreement to Sell Immovable Property',
+    shortName: 'ATS',
+    category: 'Property / Contracts',
+    description: 'A transaction template for sale of immovable property in India, covering title, consideration, possession, representations, and registration mechanics.',
+    title: 'AGREEMENT TO SELL',
+    author: 'Between [SELLER] and [PURCHASER]',
+    sections: [
+      { heading: 'Parties and Property', body: `This Agreement is made between [SELLER DETAILS] and [PURCHASER DETAILS] concerning property bearing [DESCRIPTION / ADDRESS / TITLE DETAILS].` },
+      { heading: 'Consideration', body: `The total sale consideration is Rs. [AMOUNT], payable as follows: [TOKEN / EARNEST / INSTALMENTS / BALANCE AT REGISTRATION].` },
+      { heading: 'Title and Encumbrances', body: `The Seller represents that the property is lawfully owned, marketable, and free from encumbrances except as disclosed in Schedule [X]. Title documents shall be produced for due diligence.` },
+      { heading: 'Possession and Completion', body: `Sale deed shall be executed and registered on or before [DATE], subject to receipt of balance consideration, and possession shall be delivered on [DATE / REGISTRATION].` },
+      { heading: 'Default', body: `In case of purchaser default / seller default, the non-defaulting party shall be entitled to remedies including refund, forfeiture to the extent lawful, damages, and specific performance subject to law.` },
+      { heading: 'Taxes and Registration', body: `Stamp duty, registration charges, TDS, society / association dues, mutation support, and utility transfer obligations shall be allocated as follows: [DETAILS].` },
+    ],
+  }),
+  createTemplate({
+    id: 'specific-performance-suit-india',
+    name: 'Suit for Specific Performance',
+    shortName: 'SP Suit',
+    category: 'Property / Civil Litigation',
+    description: 'A suit structure to enforce an agreement to sell or other specifically enforceable contract under Indian law.',
+    title: 'SUIT FOR SPECIFIC PERFORMANCE',
+    author: '[PLAINTIFF] Versus [DEFENDANT]',
+    sections: [
+      { heading: 'Contract Sought to be Enforced', body: `The Plaintiff seeks enforcement of agreement dated [DATE] concerning [PROPERTY / SUBJECT MATTER], executed between the parties for consideration of Rs. [AMOUNT].` },
+      { heading: 'Readiness and Willingness', body: `The Plaintiff has always been and continues to be ready and willing to perform his / her / its part of the contract and has called upon the Defendant to complete the transaction.` },
+      { heading: 'Breach by Defendant', body: `The Defendant has failed / refused to execute the sale deed / complete the contract despite notice dated [DATE].` },
+      { heading: 'Grounds', body: `The contract is valid, subsisting, and capable of specific enforcement. Monetary compensation alone is not an adequate remedy in the facts of the case.` },
+      { heading: 'Prayer', body: `1. Decree specific performance.\n2. In the alternative, grant refund with interest and damages.\n3. Grant injunction against alienation pending disposal.\n4. Award costs.` },
+    ],
+  }),
+  createTemplate({
+    id: 'board-resolution-companies-act',
+    name: 'Board Resolution (Companies Act)',
+    shortName: 'Board Res.',
     category: 'Corporate',
-    description: 'A corporate authorization draft for approvals, signatories, and implementation steps.',
-    source: String.raw`\documentclass[12pt]{article}
-\title{CERTIFIED TRUE COPY OF BOARD RESOLUTION}
-\author{[COMPANY NAME]}
-\date{[DATE]}
-
-\begin{document}
-\maketitle
-
-\section{Meeting Details}
-A meeting of the Board of Directors of [COMPANY NAME] was held on [DATE] at [PLACE / MODE].
-
-\section{Background}
-The Board considered the proposal concerning [TRANSACTION / AUTHORISATION / APPOINTMENT].
-
-\section{Resolved}
-RESOLVED THAT [STATE PRIMARY APPROVAL].
-
-\section{Further Resolved}
-RESOLVED FURTHER THAT [AUTHORISE SPECIFIC OFFICER / SIGNATORY] to do all acts, deeds, and things necessary to give effect to this resolution.
-
-\section{Certification}
-Certified to be a true copy of the resolution passed by the Board of Directors.
-
-\end{document}`,
-  },
-  {
-    id: 'service-agreement',
-    name: 'Service Agreement',
-    shortName: 'Agreement',
-    category: 'Contracts',
-    description: 'A compact services contract with scope, fees, term, confidentiality, and liability terms.',
-    source: String.raw`\documentclass[12pt]{article}
-\title{SERVICE AGREEMENT}
-\author{Between [SERVICE PROVIDER] and [CLIENT]}
-\date{[DATE]}
-
-\begin{document}
-\maketitle
-
-\section{Parties}
-This Agreement is entered into between [SERVICE PROVIDER DETAILS] and [CLIENT DETAILS].
-
-\section{Scope of Services}
-[DESCRIBE THE SERVICES, DELIVERABLES, AND PERFORMANCE EXPECTATIONS.]
-
-\section{Fees and Payment}
-[SET OUT FEES, INVOICING, TAXES, AND PAYMENT TIMELINES.]
-
-\section{Term and Termination}
-This Agreement shall commence on [DATE] and continue until [DATE / EVENT], unless terminated earlier in accordance with this Agreement.
-
-\section{Confidentiality}
-Each party shall keep confidential all non-public information disclosed in connection with this Agreement.
-
-\section{Liability and Indemnity}
-[ALLOCATE RISK, LIMITS OF LIABILITY, AND INDEMNITIES.]
-
-\section{Governing Law}
-This Agreement shall be governed by the laws of [JURISDICTION].
-
-\end{document}`,
-  },
-  {
-    id: 'nda',
-    name: 'Non-Disclosure Agreement',
+    description: 'A board-resolution template for Indian companies covering authorisation, banking, filings, contracts, fundraising, or litigation decisions.',
+    title: 'CERTIFIED TRUE COPY OF THE BOARD RESOLUTION',
+    author: '[COMPANY NAME]',
+    sections: [
+      { heading: 'Meeting Details', body: `A meeting of the Board of Directors of [COMPANY NAME] was duly held on [DATE] at [PLACE / THROUGH VIDEO CONFERENCING], in accordance with applicable law and the Articles of Association.` },
+      { heading: 'Background', body: `The Board considered the proposal in relation to [BANK ACCOUNT / APPOINTMENT / CONTRACT / LITIGATION / INVESTMENT / FILING / BORROWING].` },
+      { heading: 'Resolved', body: `RESOLVED THAT [SET OUT THE PRIMARY APPROVAL GRANTED BY THE BOARD].` },
+      { heading: 'Further Resolved', body: `RESOLVED FURTHER THAT [NAME / DESIGNATION] be and is hereby authorised to sign documents, make filings, correspond with authorities, and do all acts, deeds, matters, and things necessary to give effect to this resolution.` },
+      { heading: 'Certification', body: `Certified to be a true copy of the resolution passed by the Board of Directors of the Company and maintained in its records.` },
+    ],
+  }),
+  createTemplate({
+    id: 'employment-agreement-india',
+    name: 'Employment Agreement (India)',
+    shortName: 'Employment',
+    category: 'Employment',
+    description: 'An India-oriented employment agreement covering designation, compensation, confidentiality, leave, termination, and statutory compliance touchpoints.',
+    title: 'EMPLOYMENT AGREEMENT',
+    author: 'Between [EMPLOYER] and [EMPLOYEE]',
+    sections: [
+      { heading: 'Appointment', body: `[EMPLOYER] appoints [EMPLOYEE] as [DESIGNATION] with effect from [DATE], subject to the terms of this Agreement and company policies.` },
+      { heading: 'Role and Reporting', body: `[STATE RESPONSIBILITIES, REPORTING LINES, LOCATION, WORKING MODEL, AND TRANSFER REQUIREMENTS.]` },
+      { heading: 'Compensation and Benefits', body: `The Employee shall receive CTC / gross salary of Rs. [AMOUNT] per annum / month, together with applicable statutory deductions, reimbursements, and benefits.` },
+      { heading: 'Confidentiality and Intellectual Property', body: `The Employee shall maintain confidentiality regarding proprietary and personal data and shall assign to the Employer work product and intellectual property created in the course of employment to the extent lawful.` },
+      { heading: 'Leave, Conduct, and Compliance', body: `Leave, holidays, working hours, anti-harassment obligations, code of conduct, and disciplinary matters shall be governed by policy and applicable employment law.` },
+      { heading: 'Termination', body: `Either party may terminate the employment by giving [NOTICE PERIOD] notice or salary in lieu thereof, subject to immediate termination for misconduct as per law and policy.` },
+    ],
+  }),
+  createTemplate({
+    id: 'nda-india',
+    name: 'Non-Disclosure Agreement (India)',
     shortName: 'NDA',
     category: 'Contracts',
-    description: 'A confidentiality agreement for disclosures, permitted use, exclusions, and remedies.',
-    source: String.raw`\documentclass[12pt]{article}
-\title{NON-DISCLOSURE AGREEMENT}
-\author{Between [DISCLOSING PARTY] and [RECEIVING PARTY]}
-\date{[DATE]}
-
-\begin{document}
-\maketitle
-
-\section{Purpose}
-The parties wish to exchange certain confidential information in connection with [TRANSACTION / DISCUSSION].
-
-\section{Definition of Confidential Information}
-Confidential Information includes [DATA / MATERIALS / ORAL DISCLOSURES] designated or understood to be confidential.
-
-\section{Receiving Party Obligations}
-The Receiving Party shall use the Confidential Information solely for the stated purpose and protect it with reasonable care.
-
-\section{Exclusions}
-Confidential Information does not include information that is public, independently developed, or lawfully received from a third party.
-
-\section{Term}
-The confidentiality obligations under this Agreement shall continue for [PERIOD].
-
-\section{Remedies}
-The parties agree that unauthorised disclosure may cause irreparable harm and entitle the Disclosing Party to equitable relief.
-
-\end{document}`,
-  },
-  {
-    id: 'employment-contract',
-    name: 'Employment Contract',
-    shortName: 'Employment',
-    category: 'HR',
-    description: 'An employment offer and terms template with duties, compensation, and termination clauses.',
-    source: String.raw`\documentclass[12pt]{article}
-\title{EMPLOYMENT AGREEMENT}
-\author{Between [EMPLOYER] and [EMPLOYEE]}
-\date{[DATE]}
-
-\begin{document}
-\maketitle
-
-\section{Appointment}
-[EMPLOYER] appoints [EMPLOYEE] as [DESIGNATION] with effect from [DATE].
-
-\section{Duties and Reporting}
-[STATE ROLE, RESPONSIBILITIES, AND REPORTING LINE.]
-
-\section{Compensation and Benefits}
-[SET OUT SALARY, BONUS, ALLOWANCES, AND BENEFITS.]
-
-\section{Confidentiality and IP}
-The Employee shall maintain confidentiality and assign all work product and intellectual property created in the course of employment.
-
-\section{Leave and Conduct}
-[STATE LEAVE ENTITLEMENTS, POLICIES, AND MISCONDUCT EXPECTATIONS.]
-
-\section{Termination}
-Either party may terminate employment in accordance with [NOTICE PERIOD / GROUNDS].
-
-\end{document}`,
-  },
-  {
-    id: 'contract-review-note',
-    name: 'Contract Review Note',
-    shortName: 'Review Note',
-    category: 'Advisory',
-    description: 'A clause-by-clause review note for red flags, negotiation asks, and fallback positions.',
-    source: String.raw`\documentclass[12pt]{article}
-\title{CONTRACT REVIEW NOTE}
-\author{Prepared for [CLIENT / TEAM]}
-\date{[DATE]}
-
-\begin{document}
-\maketitle
-
-\section{Document Reviewed}
-[IDENTIFY THE AGREEMENT, VERSION, AND COUNTERPARTY.]
-
-\section{Commercial Context}
-[STATE THE DEAL OBJECTIVE, TIMELINE, AND BUSINESS SENSITIVITIES.]
-
-\section{Priority Issues}
-1. [ISSUE / RED FLAG 1].
-2. [ISSUE / RED FLAG 2].
-3. [ISSUE / RED FLAG 3].
-
-\section{Clause Comments}
-[SUMMARISE COMMENTS CLAUSE BY CLAUSE.]
-
-\section{Negotiation Position}
-[SET OUT MUST-HAVES, NICE-TO-HAVES, AND FALLBACKS.]
-
-\section{Recommendation}
-[STATE WHETHER TO SIGN, RENEGOTIATE, OR HOLD.]
-
-\end{document}`,
-  },
+    description: 'A confidentiality agreement drafted for Indian commercial use, with disclosure purpose, exclusions, return obligations, and equitable relief language.',
+    title: 'NON-DISCLOSURE AGREEMENT',
+    author: 'Between [DISCLOSING PARTY] and [RECEIVING PARTY]',
+    sections: [
+      { heading: 'Purpose', body: `The parties wish to exchange confidential information in connection with [TRANSACTION / EVALUATION / PROJECT / VENDOR DISCUSSION].` },
+      { heading: 'Confidential Information', body: `Confidential Information includes commercial, technical, financial, legal, customer, source-code, and strategy information in oral, visual, electronic, or written form.` },
+      { heading: 'Receiving Party Obligations', body: `The Receiving Party shall use the information only for the stated purpose, restrict access on a need-to-know basis, and protect it with reasonable security safeguards.` },
+      { heading: 'Exclusions', body: `Confidential Information excludes information that is public without breach, already lawfully known, independently developed, or lawfully obtained from a third party without confidentiality breach.` },
+      { heading: 'Return / Destruction', body: `Upon request or termination of discussions, the Receiving Party shall return or destroy confidential material except copies required by law or backup retention systems.` },
+      { heading: 'Remedies and Governing Law', body: `Unauthorised disclosure may cause irreparable harm entitling the Disclosing Party to injunctive relief in addition to contractual and statutory remedies. This Agreement shall be governed by the laws of India.` },
+    ],
+  }),
+  createTemplate({
+    id: 'service-agreement-india',
+    name: 'Service Agreement (India)',
+    shortName: 'Services',
+    category: 'Contracts',
+    description: 'A services contract for Indian businesses covering scope, fees, taxes, confidentiality, IP, liability, and dispute resolution.',
+    title: 'SERVICE AGREEMENT',
+    author: 'Between [SERVICE PROVIDER] and [CLIENT]',
+    sections: [
+      { heading: 'Parties and Scope', body: `This Agreement is entered into between [SERVICE PROVIDER DETAILS] and [CLIENT DETAILS] for provision of [SERVICES / DELIVERABLES / MILESTONES].` },
+      { heading: 'Fees, Taxes, and Payment', body: `Fees shall be Rs. [AMOUNT] / as per Schedule [X], exclusive / inclusive of applicable taxes. Invoices shall be paid within [NUMBER] days of receipt.` },
+      { heading: 'Service Standards', body: `[SET OUT TIMELINES, ACCEPTANCE CRITERIA, CHANGE CONTROL, DEPENDENCIES, AND REPORTING.]` },
+      { heading: 'Confidentiality and IP', body: `Each party shall protect confidential information. Ownership / license in work product, background IP, open-source usage, and moral-rights waivers shall be allocated as follows: [DETAILS].` },
+      { heading: 'Liability and Indemnity', body: `[ALLOCATE LIABILITY CAPS, EXCLUSIONS, INDEMNITIES, THIRD-PARTY CLAIM COVERAGE, AND SECURITY EXPECTATIONS.]` },
+      { heading: 'Term, Termination, and Disputes', body: `This Agreement commences on [DATE] and continues until [DATE / COMPLETION]. It may be terminated for breach / convenience as stated herein. Governing law shall be India, and disputes shall be resolved by [COURTS / ARBITRATION] at [SEAT / VENUE].` },
+    ],
+  }),
 ];
 
 export function getDraftingTemplate(templateId) {
