@@ -1,11 +1,9 @@
 import {
-  ChevronLeft,
+  Clipboard,
   Columns2,
-  Copy,
   Eye,
   FileCode2,
-  PanelRightClose,
-  PanelRightOpen,
+  PanelLeftOpen,
   Settings2,
 } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -26,33 +24,14 @@ export default function EditorChromeBar({
   onOpenSettings,
   onCopy,
   copyState,
-  onBackToSetup,
   editorLayout,
   onEditorLayoutChange,
 }) {
-  const currentTemplateName = activeDraft?.templateName || 'No template selected';
-
   return (
     <header className="drafting-editor-bar">
       <div className="drafting-editor-bar__identity">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={onBackToSetup}
-          className="drafting-editor-bar__setup"
-          aria-label="Back to setup"
-          title="Back to setup"
-        >
-          <ChevronLeft className="drafting-editor-bar__icon" />
-        </Button>
-
         <div className="drafting-editor-bar__main">
           <div className="drafting-editor-bar__title-wrap">
-            <div className="drafting-editor-bar__eyebrow">
-              <span className="drafting-editor-bar__eyebrow-badge">Draft workspace</span>
-              <span className="drafting-editor-bar__eyebrow-separator" aria-hidden="true" />
-              <span className="drafting-editor-bar__eyebrow-text">{currentTemplateName}</span>
-            </div>
             <Input
               className="drafting-editor-bar__title-input"
               value={activeDraft?.title || 'Untitled Draft'}
@@ -66,6 +45,19 @@ export default function EditorChromeBar({
 
       <div className="drafting-editor-bar__actions">
         <div className="drafting-editor-bar__action-group">
+          {!showRightSidebar ? (
+            <Button
+              variant="outline"
+              size="icon"
+              className="drafting-editor-bar__action"
+              onClick={onToggleSidebar}
+              aria-label="Show AI sidebar"
+              title="Show AI sidebar"
+            >
+              <PanelLeftOpen className="drafting-editor-bar__icon drafting-editor-bar__icon--strong" />
+            </Button>
+          ) : null}
+
           <Button
             variant="outline"
             size="icon"
@@ -108,25 +100,6 @@ export default function EditorChromeBar({
 
         <div className="drafting-editor-bar__action-group">
           <Button
-            variant="outline"
-            size="icon"
-            className={
-              showRightSidebar
-                ? 'drafting-editor-bar__icon-button drafting-editor-bar__icon-button--active'
-                : 'drafting-editor-bar__icon-button'
-            }
-            onClick={onToggleSidebar}
-            aria-label={showRightSidebar ? 'Hide AI rail' : 'Show AI rail'}
-            title={showRightSidebar ? 'Hide AI rail' : 'Show AI rail'}
-          >
-            {showRightSidebar ? (
-              <PanelRightClose className="drafting-editor-bar__icon" />
-            ) : (
-              <PanelRightOpen className="drafting-editor-bar__icon" />
-            )}
-          </Button>
-
-          <Button
             className="drafting-editor-bar__copy"
             onClick={onCopy}
             disabled={!activeDraft}
@@ -134,7 +107,7 @@ export default function EditorChromeBar({
             aria-label={copyState}
             title={copyState}
           >
-            <Copy className="drafting-editor-bar__icon" />
+            <Clipboard className="drafting-editor-bar__icon drafting-editor-bar__icon--strong" />
           </Button>
         </div>
       </div>

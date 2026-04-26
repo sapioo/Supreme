@@ -1,6 +1,7 @@
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { PromptInputBox } from '../ui/ai-prompt-box';
+import { PanelLeftClose } from 'lucide-react';
 
 export default function AIChatPane({
   providerStatus,
@@ -11,12 +12,25 @@ export default function AIChatPane({
   onSendChat,
   onApplyProposal,
   onDiscardProposal,
+  onHideSidebar,
 }) {
   return (
     <Card className="drafting-pane drafting-pane--ai">
       {/* Header */}
       <div className="drafting-pane__head">
-        <h2>AI Drafting Chat</h2>
+        <div className="drafting-pane__head-primary">
+          <Button
+            variant="outline"
+            size="icon"
+            className="drafting-pane__sidebar-toggle"
+            onClick={onHideSidebar}
+            aria-label="Hide AI sidebar"
+            title="Hide AI sidebar"
+          >
+            <PanelLeftClose className="drafting-pane__sidebar-toggle-icon" />
+          </Button>
+          <h2>AI Drafting Chat</h2>
+        </div>
         <span>{providerStatus}</span>
       </div>
 

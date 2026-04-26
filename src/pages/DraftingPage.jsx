@@ -22,6 +22,14 @@ import SourcePane from '../components/drafting/SourcePane';
 import PreviewPane from '../components/drafting/PreviewPane';
 import AIChatPane from '../components/drafting/AIChatPane';
 import SettingsDialog from '../components/drafting/SettingsDialog';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '../components/ui/breadcrumb';
 
 const EMPTY_PREVIEW = [{ type: 'paragraph', text: 'Create or open a draft to begin.' }];
 const matterTypes = ['Civil', 'Criminal', 'Constitutional', 'Commercial', 'Advisory'];
@@ -137,6 +145,9 @@ export default function DraftingPage({ onBack }) {
     () => draftingTemplates.map((template) => ({ ...template, sectionTitles: extractSectionTitles(template.source) })),
     []
   );
+  const currentWizardLabel =
+    wizardSteps.find((step) => step.id === wizardStep)?.label || 'Setup';
+  const currentDraftName = activeDraft?.title || setupTitle.trim() || 'Drafting';
 
   useEffect(() => {
     if (!activeDraft) return;
@@ -296,6 +307,30 @@ export default function DraftingPage({ onBack }) {
 
   const providerStatus = aiSettings.apiKey && aiSettings.model ? 'Ready' : 'Needs setup';
 
+  const breadcrumb = (
+    <Breadcrumb className="drafting-page__breadcrumb">
+      <BreadcrumbList>
+        <BreadcrumbItem>
+          <BreadcrumbLink onClick={onBack}>Home</BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />
+        <BreadcrumbItem>
+          {viewMode === 'editor' ? (
+            <BreadcrumbLink onClick={() => setViewMode('setup')}>Drafting</BreadcrumbLink>
+          ) : (
+            <BreadcrumbPage>Drafting</BreadcrumbPage>
+          )}
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />
+        <BreadcrumbItem>
+          <BreadcrumbPage>
+            {viewMode === 'editor' ? currentDraftName : currentWizardLabel}
+          </BreadcrumbPage>
+        </BreadcrumbItem>
+      </BreadcrumbList>
+    </Breadcrumb>
+  );
+
   if (viewMode === 'setup') {
     const selectedTemplate = templateCatalog.find((template) => template.id === setupTemplateId) || templateCatalog[0];
     const currentStepIndex = wizardSteps.findIndex((step) => step.id === wizardStep);
@@ -306,6 +341,7 @@ export default function DraftingPage({ onBack }) {
 
     return (
       <main className="drafting-page drafting-page--setup" id="drafting-page">
+        {breadcrumb}
         <SetupHeader
           onBack={onBack}
           activeDraft={activeDraft}
@@ -376,6 +412,7 @@ export default function DraftingPage({ onBack }) {
 
   return (
     <main className="drafting-page drafting-page--editor" id="drafting-page">
+      {breadcrumb}
       <EditorChromeBar
         activeDraft={activeDraft}
         onTitleChange={(value) => {
@@ -387,7 +424,6 @@ export default function DraftingPage({ onBack }) {
         onOpenSettings={openSettings}
         onCopy={handleCopy}
         copyState={copyState}
-        onBackToSetup={() => setViewMode('setup')}
         editorLayout={editorLayout}
         onEditorLayoutChange={setEditorLayout}
       />
@@ -406,6 +442,7 @@ export default function DraftingPage({ onBack }) {
               onSendChat={handleSendChat}
               onApplyProposal={handleApplyProposal}
               onDiscardProposal={handleDiscardProposal}
+              onHideSidebar={() => setShowRightSidebar(false)}
             />
           </div>
         )}
