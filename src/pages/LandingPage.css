@@ -11,50 +11,6 @@
   padding: 0 clamp(1rem, 5vw, 4.5rem);
 }
 
-.landing-page__toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-  margin-bottom: var(--space-6);
-}
-
-.landing-page__toolbar-back,
-.landing-page__toolbar-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.9rem 1.15rem;
-  border-radius: 14px;
-  font-family: var(--font-label);
-  font-size: 0.74rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  font-weight: 700;
-}
-
-.landing-page__toolbar-back {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: var(--color-on-surface);
-}
-
-.landing-page__toolbar-back:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(183, 200, 222, 0.36);
-}
-
-.landing-page__toolbar-btn {
-  background: var(--color-secondary);
-  color: var(--color-on-secondary);
-}
-
-.landing-page__toolbar-btn:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.05);
-}
-
 .landing-page__cases-head {
   margin: 0 0 var(--space-8);
   position: relative;
@@ -78,11 +34,6 @@
 .landing-page__cases-title {
   font-size: clamp(1.6rem, 3.2vw, 2.6rem);
   color: var(--color-on-surface);
-}
-
-.landing-page__cases-copy {
-  max-width: 42ch;
-  color: var(--color-on-surface-variant);
 }
 
 /* Archive toggle */

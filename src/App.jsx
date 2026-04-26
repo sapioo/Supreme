@@ -75,7 +75,6 @@ export default function App() {
         <div className="app__page app__page--landing">
           <LandingPage
             onSelectCase={handleSelectCase}
-            onBackHome={handleBackToStart}
             onCustomCase={handleGoCustomCase}
             onFirm={handleGoFirm}
           />
