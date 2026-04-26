@@ -1,5 +1,4 @@
 const STORAGE_KEY = 'supreme_drafts';
-const MAX_DRAFTS = 25;
 
 function safeRead() {
   try {
@@ -11,7 +10,7 @@ function safeRead() {
 }
 
 function safeWrite(drafts) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(drafts.slice(0, MAX_DRAFTS)));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(drafts));
 }
 
 export function listDrafts() {

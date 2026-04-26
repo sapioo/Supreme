@@ -5,7 +5,7 @@ const tabs = ['ai', 'source', 'preview'];
 export default function MobileTabs({ activeTab, onTabChange }) {
   return (
     <div
-      className="hidden max-[920px]:grid grid-cols-3 gap-2"
+      className="drafting-mobile-tabs"
       role="tablist"
       aria-label="Drafting workspace panels"
     >
@@ -16,11 +16,10 @@ export default function MobileTabs({ activeTab, onTabChange }) {
           role="tab"
           aria-selected={activeTab === tab}
           className={cn(
-            'min-h-[38px] rounded-md border text-sm capitalize',
-            'bg-[rgba(22,28,35,0.8)]',
+            'drafting-mobile-tabs__tab',
             activeTab === tab
-              ? 'border-[rgba(233,193,118,0.5)] text-[var(--color-secondary)]'
-              : 'border-[rgba(255,255,255,0.1)] text-[var(--color-on-surface)]',
+              ? 'drafting-mobile-tabs__tab--active'
+              : 'drafting-mobile-tabs__tab--idle',
           )}
           onClick={() => onTabChange(tab)}
         >

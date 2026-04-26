@@ -1,36 +1,34 @@
 import {
   Clipboard,
-  Columns2,
-  Eye,
-  FileCode2,
+  PanelLeftClose,
   PanelLeftOpen,
-  Settings2,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { cn } from '../../lib/utils';
-
-const layoutOptions = [
-  { value: 'source', label: 'Code view', icon: FileCode2 },
-  { value: 'preview', label: 'Preview view', icon: Eye },
-  { value: 'split', label: 'Split view', icon: Columns2 },
-];
+import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 
 export default function EditorChromeBar({
   activeDraft,
+  breadcrumb,
   onTitleChange,
   showRightSidebar,
   onToggleSidebar,
-  onOpenSettings,
   onCopy,
   copyState,
   editorLayout,
   onEditorLayoutChange,
 }) {
+  const layoutMode = editorLayout === 'split' ? 'split' : 'single';
+
   return (
     <header className="drafting-editor-bar">
       <div className="drafting-editor-bar__identity">
         <div className="drafting-editor-bar__main">
+          {breadcrumb ? (
+            <div className="drafting-editor-bar__breadcrumb">
+              {breadcrumb}
+            </div>
+          ) : null}
           <div className="drafting-editor-bar__title-wrap">
             <Input
               className="drafting-editor-bar__title-input"
@@ -43,59 +41,39 @@ export default function EditorChromeBar({
         </div>
       </div>
 
+      <Tabs
+        value={layoutMode}
+        onValueChange={(value) => {
+          if (value === 'single') {
+            onEditorLayoutChange(editorLayout === 'preview' ? 'preview' : 'source');
+            return;
+          }
+          onEditorLayoutChange('split');
+        }}
+        className="drafting-editor-layout-tabs"
+      >
+        <TabsList aria-label="Source and preview layout">
+          <TabsTrigger value="single">One</TabsTrigger>
+          <TabsTrigger value="split">Split</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       <div className="drafting-editor-bar__actions">
         <div className="drafting-editor-bar__action-group">
-          {!showRightSidebar ? (
-            <Button
-              variant="outline"
-              size="icon"
-              className="drafting-editor-bar__action"
-              onClick={onToggleSidebar}
-              aria-label="Show AI sidebar"
-              title="Show AI sidebar"
-            >
-              <PanelLeftOpen className="drafting-editor-bar__icon drafting-editor-bar__icon--strong" />
-            </Button>
-          ) : null}
-
           <Button
             variant="outline"
-            size="icon"
-            className="drafting-editor-bar__action"
-            onClick={onOpenSettings}
-            aria-label="Open settings"
-            title="Open settings"
+            className={`drafting-editor-bar__sidebar-toggle ${showRightSidebar ? 'drafting-editor-bar__sidebar-toggle--active' : ''}`}
+            onClick={onToggleSidebar}
+            aria-label={showRightSidebar ? 'Hide AI sidebar' : 'Show AI sidebar'}
+            title={showRightSidebar ? 'Hide AI sidebar' : 'Show AI sidebar'}
           >
-            <Settings2 className="drafting-editor-bar__icon" />
+            {showRightSidebar ? (
+              <PanelLeftClose className="drafting-editor-bar__icon drafting-editor-bar__icon--strong" />
+            ) : (
+              <PanelLeftOpen className="drafting-editor-bar__icon drafting-editor-bar__icon--strong" />
+            )}
+            <span>AI</span>
           </Button>
-
-          <div
-            className="drafting-editor-layout-switch"
-            role="tablist"
-            aria-label="Source and preview layout"
-          >
-            {layoutOptions.map((option) => {
-              const Icon = option.icon;
-
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  role="tab"
-                  aria-selected={editorLayout === option.value}
-                  aria-label={option.label}
-                  title={option.label}
-                  className={cn(
-                    'drafting-editor-layout-switch__option',
-                    editorLayout === option.value && 'drafting-editor-layout-switch__option--active'
-                  )}
-                  onClick={() => onEditorLayoutChange(option.value)}
-                >
-                  <Icon className="drafting-editor-layout-switch__icon" />
-                </button>
-              );
-            })}
-          </div>
         </div>
 
         <div className="drafting-editor-bar__action-group">

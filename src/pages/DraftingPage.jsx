@@ -1,12 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { draftingTemplates } from '../data/draftingTemplates';
 import { createDraft, listDrafts, saveDraft } from '../services/draftStorage';
 import { chatWithDraftingAI } from '../services/draftingAIService';
-import {
-  clearDraftingAISettings,
-  getDraftingAISettings,
-  saveDraftingAISettings,
-} from '../services/draftingAISettings';
+import { getDraftingAISettings } from '../services/draftingAISettings';
 import '../tailwind.css';
 import './DraftingPage.css';
 
@@ -21,7 +17,6 @@ import MobileTabs from '../components/drafting/MobileTabs';
 import SourcePane from '../components/drafting/SourcePane';
 import PreviewPane from '../components/drafting/PreviewPane';
 import AIChatPane from '../components/drafting/AIChatPane';
-import SettingsDialog from '../components/drafting/SettingsDialog';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -135,10 +130,10 @@ export default function DraftingPage({ onBack }) {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [settingsError, setSettingsError] = useState('');
-  const [aiSettings, setAiSettings] = useState(() => getDraftingAISettings());
-  const [settingsForm, setSettingsForm] = useState(() => getDraftingAISettings());
+  const aiSettings = getDraftingAISettings();
+  const workspaceRef = useRef(null);
+  const resizeStateRef = useRef(null);
+  const [aiPaneWidth, setAiPaneWidth] = useState(320);
 
   const previewBlocks = useMemo(() => parsePreview(source), [source]);
   const templateCatalog = useMemo(
@@ -161,6 +156,36 @@ export default function DraftingPage({ onBack }) {
 
     return () => clearTimeout(timeout);
   }, [activeDraft?.id, activeDraft?.title, source]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const handlePointerMove = (event) => {
+      const state = resizeStateRef.current;
+      if (!state || !workspaceRef.current) return;
+
+      const nextWidth = state.startWidth + (event.clientX - state.startX);
+      const workspaceWidth = workspaceRef.current.getBoundingClientRect().width;
+      const maxWidth = Math.min(520, Math.max(320, workspaceWidth * 0.45));
+      const clampedWidth = Math.max(260, Math.min(maxWidth, nextWidth));
+      setAiPaneWidth(clampedWidth);
+    };
+
+    const stopResize = () => {
+      if (!resizeStateRef.current) return;
+      resizeStateRef.current = null;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', stopResize);
+    window.addEventListener('pointercancel', stopResize);
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', stopResize);
+      window.removeEventListener('pointercancel', stopResize);
+    };
+  }, []);
 
   const resetEditorAssistant = useCallback(() => {
     setChatMessages([]);
@@ -207,37 +232,6 @@ export default function DraftingPage({ onBack }) {
       setTimeout(() => setCopyState('Copy Draft'), 1600);
     }
   }, [source]);
-
-  const openSettings = useCallback(() => {
-    const latestSettings = getDraftingAISettings();
-    setAiSettings(latestSettings);
-    setSettingsForm(latestSettings);
-    setSettingsError('');
-    setIsSettingsOpen(true);
-  }, []);
-
-  const handleSaveSettings = useCallback(() => {
-    const apiKey = settingsForm.apiKey.trim();
-    const model = settingsForm.model.trim();
-
-    if (!apiKey || !model) {
-      setSettingsError('API key and model are both required.');
-      return;
-    }
-
-    const next = saveDraftingAISettings({ apiKey, model });
-    setAiSettings(next);
-    setSettingsForm(next);
-    setSettingsError('');
-    setIsSettingsOpen(false);
-  }, [settingsForm.apiKey, settingsForm.model]);
-
-  const handleClearSettings = useCallback(() => {
-    const cleared = clearDraftingAISettings();
-    setAiSettings(cleared);
-    setSettingsForm(cleared);
-    setSettingsError('');
-  }, []);
 
   const handleSendChat = useCallback(async () => {
     const prompt = chatInput.trim();
@@ -305,7 +299,18 @@ export default function DraftingPage({ onBack }) {
     );
   }, []);
 
-  const providerStatus = aiSettings.apiKey && aiSettings.model ? 'Ready' : 'Needs setup';
+  const handleResizeStart = useCallback((event) => {
+    if (event.button !== 0) return;
+    resizeStateRef.current = {
+      startX: event.clientX,
+      startWidth: aiPaneWidth,
+    };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    event.preventDefault();
+  }, [aiPaneWidth]);
+
+  const providerStatus = aiSettings.apiKey && aiSettings.model ? 'Ready' : 'Env missing';
 
   const breadcrumb = (
     <Breadcrumb className="drafting-page__breadcrumb">
@@ -343,9 +348,6 @@ export default function DraftingPage({ onBack }) {
       <main className="drafting-page drafting-page--setup" id="drafting-page">
         {breadcrumb}
         <SetupHeader
-          onBack={onBack}
-          activeDraft={activeDraft}
-          onContinueEditor={() => setViewMode('editor')}
         />
 
         <section className="drafting-setup-layout">
@@ -405,6 +407,9 @@ export default function DraftingPage({ onBack }) {
   const workspaceClassName = showRightSidebar
     ? `drafting-workspace drafting-workspace--with-ai drafting-workspace--layout-${editorLayout}`
     : `drafting-workspace drafting-workspace--without-ai drafting-workspace--layout-${editorLayout}`;
+  const workspaceStyle = showRightSidebar
+    ? { '--drafting-ai-width': `${aiPaneWidth}px` }
+    : undefined;
 
   const showSinglePaneSwitcher = editorLayout !== 'split';
   const hideSourceOnDesktop = editorLayout === 'preview';
@@ -412,16 +417,15 @@ export default function DraftingPage({ onBack }) {
 
   return (
     <main className="drafting-page drafting-page--editor" id="drafting-page">
-      {breadcrumb}
       <EditorChromeBar
         activeDraft={activeDraft}
+        breadcrumb={breadcrumb}
         onTitleChange={(value) => {
           if (!activeDraft) return;
           setActiveDraft({ ...activeDraft, title: value });
         }}
         showRightSidebar={showRightSidebar}
         onToggleSidebar={() => setShowRightSidebar((c) => !c)}
-        onOpenSettings={openSettings}
         onCopy={handleCopy}
         copyState={copyState}
         editorLayout={editorLayout}
@@ -430,7 +434,7 @@ export default function DraftingPage({ onBack }) {
 
       <MobileTabs activeTab={mobileTab} onTabChange={setMobileTab} />
 
-      <section className={workspaceClassName}>
+      <section className={workspaceClassName} ref={workspaceRef} style={workspaceStyle}>
         {showRightSidebar && (
           <div className={`drafting-pane-shell drafting-pane-shell--ai ${mobileTab === 'ai' ? 'drafting-pane-shell--active' : ''}`}>
             <AIChatPane
@@ -442,9 +446,18 @@ export default function DraftingPage({ onBack }) {
               onSendChat={handleSendChat}
               onApplyProposal={handleApplyProposal}
               onDiscardProposal={handleDiscardProposal}
-              onHideSidebar={() => setShowRightSidebar(false)}
             />
           </div>
+        )}
+
+        {showRightSidebar && (
+          <div
+            className="drafting-pane-resizer"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize AI chat panel"
+            onPointerDown={handleResizeStart}
+          />
         )}
 
         <div
@@ -472,16 +485,6 @@ export default function DraftingPage({ onBack }) {
           />
         </div>
       </section>
-
-      <SettingsDialog
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        settingsForm={settingsForm}
-        onFormChange={setSettingsForm}
-        onSave={handleSaveSettings}
-        onClear={handleClearSettings}
-        error={settingsError}
-      />
     </main>
   );
 }

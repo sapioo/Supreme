@@ -70,7 +70,7 @@ export default function WizardRail({
           <p className="drafting-empty">No saved drafts yet.</p>
         )}
 
-        {drafts.slice(0, 5).map((draft) => (
+        {drafts.map((draft) => (
           <button
             key={draft.id}
             type="button"

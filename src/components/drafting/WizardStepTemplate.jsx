@@ -62,7 +62,7 @@ export default function WizardStepTemplate({
             </div>
 
             <p className="drafting-template-card__sections">
-              {template.sectionTitles.slice(0, 3).join(' • ')}
+              {template.sectionTitles.join(' • ')}
             </p>
           </button>
         ))}
