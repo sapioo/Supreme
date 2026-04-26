@@ -5,6 +5,8 @@
  * Embeddings stay in qdrantService.js (NVIDIA), unchanged.
  */
 
+import { searchSupremeCourtLawyers } from './lawyerDirectoryService';
+
 // In dev, use the Vite proxy to avoid CORS. In production, call Gemini directly.
 const GEMINI_BASE_URL = import.meta.env.DEV
   ? '/api/gemini/v1beta/openai'
@@ -159,64 +161,7 @@ function parseJsonFromText(raw) {
   return null;
 }
 
-function normalizeLawyerList(payload) {
-  const coerceList = (value) => {
-    if (Array.isArray(value)) return value;
-    if (value && typeof value === 'object') return Object.values(value);
-    return [];
-  };
-
-  const rawList = Array.isArray(payload)
-    ? payload
-    : coerceList(payload?.lawyers).length > 0
-      ? coerceList(payload?.lawyers)
-      : coerceList(payload?.advocates).length > 0
-        ? coerceList(payload?.advocates)
-        : coerceList(payload?.recommendations).length > 0
-          ? coerceList(payload?.recommendations)
-          : coerceList(payload?.rankings).length > 0
-            ? coerceList(payload?.rankings)
-            : coerceList(payload?.results).length > 0
-              ? coerceList(payload?.results)
-              : coerceList(payload?.candidates).length > 0
-                ? coerceList(payload?.candidates)
-                : [];
-
-  const normalized = rawList
-    .map((item, idx) => {
-      if (!item || typeof item !== 'object') return null;
-      const name = (item.name || item.fullName || item.full_name || item.lawyer || item.advocate || item.advocate_name || item.counsel || '').toString().trim();
-      if (!name) return null;
-
-      const specialties = Array.isArray(item.specialties)
-        ? item.specialties
-        : Array.isArray(item.specialty)
-          ? item.specialty
-          : item.specialty
-            ? [item.specialty]
-            : [];
-
-      return {
-        rank: Number(item.rank || item.position || item.order) || idx + 1,
-        name,
-        designation: (item.designation || item.title || item.role || item.positionTitle || 'Senior Advocate').toString().trim(),
-        specialties: specialties
-          .map((s) => (s == null ? '' : String(s).trim()))
-          .filter(Boolean)
-          .slice(0, 4),
-        court: (item.court || item.courts || item.forum || 'Supreme Court of India').toString().trim(),
-        rationale: (item.rationale || item.reason || item.why || item.explanation || '').toString().trim(),
-      };
-    })
-    .filter(Boolean);
-
-  return normalized
-    .sort((a, b) => a.rank - b.rank)
-    .map((item, idx) => ({ ...item, rank: idx + 1 }))
-    .slice(0, 6);
-}
-
-function buildFallbackLawyerList(caseSummary) {
+function buildFallbackLawyerList(caseSummary, filters = {}) {
   const names = [
     'Harish Salve',
     'Mukul Rohatgi',
@@ -224,6 +169,15 @@ function buildFallbackLawyerList(caseSummary) {
     'Indira Jaising',
     'Abhishek Manu Singhvi',
     'Menaka Guruswamy',
+    'Gopal Sankaranarayanan',
+    'Arvind Datar',
+    'K. V. Viswanathan',
+    'Sajan Poovayya',
+    'Anitha Shenoy',
+    'Rebecca John',
+    'Karuna Nundy',
+    'Arundhati Katju',
+    'Zia Mody',
   ];
 
   const specialties = [
@@ -233,6 +187,15 @@ function buildFallbackLawyerList(caseSummary) {
     ['Fundamental Rights', 'Constitutional Litigation'],
     ['Constitutional Law', 'Commercial Litigation'],
     ['Constitutional Law', 'Civil Liberties'],
+    ['Constitutional Law', 'Appellate Advocacy'],
+    ['Tax Law', 'Commercial Appeals'],
+    ['Constitutional Law', 'Public Law'],
+    ['Technology Law', 'Commercial Litigation'],
+    ['Commercial Litigation', 'Arbitration'],
+    ['Criminal Law', 'White-Collar Defence'],
+    ['Civil Liberties', 'Constitutional Litigation'],
+    ['Criminal Law', 'Gender Justice'],
+    ['Corporate Law', 'M&A'],
   ];
 
   const shortCase = caseSummary.trim().slice(0, 140);
@@ -243,11 +206,236 @@ function buildFallbackLawyerList(caseSummary) {
     designation: 'Senior Advocate / Supreme Court of India',
     specialties: specialties[i],
     court: 'Supreme Court of India',
+    fitHighlights: [
+      filters.matterType || 'Complex legal dispute',
+      filters.courtLevel || 'Appellate advocacy',
+      filters.mustHaveExpertise || 'High-stakes argument strategy',
+    ].filter(Boolean).slice(0, 3),
     rationale: `Strong courtroom track record for issues aligned with: "${shortCase}${caseSummary.length > 140 ? '...' : ''}".`,
   }));
 }
 
-async function repairLawyerPayloadFromText(rawContent) {
+function ensureLawyerListCoverage(lawyers, caseSummary, filters = {}, resultCount = 6) {
+  const safeResultCount = Math.min(20, Math.max(1, Number(resultCount) || 6));
+  const normalizedLawyers = Array.isArray(lawyers) ? lawyers.filter(Boolean) : [];
+  const seenNames = new Set(
+    normalizedLawyers
+      .map((lawyer) => lawyer?.name?.toString().trim().toLowerCase())
+      .filter(Boolean)
+  );
+
+  if (normalizedLawyers.length >= safeResultCount) {
+    return normalizedLawyers
+      .slice(0, safeResultCount)
+      .map((lawyer, index) => ({ ...lawyer, rank: index + 1 }));
+  }
+
+  const fallbackPool = buildFallbackLawyerList(caseSummary, filters).filter((lawyer) => {
+    const normalizedName = lawyer.name.toLowerCase();
+    if (seenNames.has(normalizedName)) return false;
+    seenNames.add(normalizedName);
+    return true;
+  });
+
+  return [...normalizedLawyers, ...fallbackPool]
+    .slice(0, safeResultCount)
+    .map((lawyer, index) => ({ ...lawyer, rank: index + 1 }));
+}
+
+function buildHeuristicFitHighlights(candidate, filters = {}) {
+  const highlights = [];
+
+  if (candidate.isSeniorAdvocate) highlights.push('Senior advocate');
+  if (candidate.city) highlights.push(`${candidate.city}-based`);
+  if (candidate.experienceYears) highlights.push(`${candidate.experienceYears}+ years since AOR registration`);
+  if (filters.courtLevel) highlights.push(filters.courtLevel);
+  if (filters.mustHaveExpertise) highlights.push(filters.mustHaveExpertise);
+
+  return highlights.slice(0, 4);
+}
+
+function buildHeuristicRationale(candidate, caseSummary, filters = {}) {
+  const reasons = [];
+  if (candidate.isSeniorAdvocate) reasons.push('has been designated as a senior advocate');
+  if (candidate.experienceYears) reasons.push(`has ${candidate.experienceYears}+ years of Supreme Court AOR experience`);
+  if (filters.city && candidate.address.toLowerCase().includes(filters.city.toLowerCase())) {
+    reasons.push(`matches the preferred city filter for ${filters.city}`);
+  }
+  if (filters.courtLevel) reasons.push(`fits a ${filters.courtLevel} forum requirement from the official AOR list`);
+
+  const joinedReasons = reasons.length > 0 ? reasons.join(', ') : 'appears in the official Supreme Court AOR directory';
+  const shortCase = caseSummary.trim().slice(0, 120);
+  return `Sourced from the official Supreme Court Advocate-on-Record directory and ${joinedReasons}. Use this as a vetted candidate list for the matter: "${shortCase}${caseSummary.length > 120 ? '...' : ''}".`;
+}
+
+function buildLawyerCardFromCandidate(candidate, rank, caseSummary, filters = {}, overrides = {}) {
+  return {
+    rank,
+    name: candidate.name,
+    designation: candidate.designation,
+    specialties: overrides.specialties?.length > 0
+      ? overrides.specialties
+      : ['Supreme Court Practice', 'Appellate Advocacy'].slice(0, 4),
+    court: candidate.court,
+    fitHighlights: overrides.fitHighlights?.length > 0
+      ? overrides.fitHighlights
+      : buildHeuristicFitHighlights(candidate, filters),
+    rationale: overrides.rationale || buildHeuristicRationale(candidate, caseSummary, filters),
+    sourceRecord: candidate,
+  };
+}
+
+function rankDirectoryLawyersHeuristically(candidates, caseSummary, filters = {}, resultCount = 6) {
+  return candidates
+    .slice(0, resultCount)
+    .map((candidate, index) => buildLawyerCardFromCandidate(candidate, index + 1, caseSummary, filters));
+}
+
+function normalizeDirectoryRankings(payload, candidatesById, caseSummary, filters = {}, resultCount = 6) {
+  const coerceList = (value) => {
+    if (Array.isArray(value)) return value;
+    if (value && typeof value === 'object') return Object.values(value);
+    return [];
+  };
+
+  const rawList = Array.isArray(payload)
+    ? payload
+    : coerceList(payload?.lawyers).length > 0
+      ? coerceList(payload?.lawyers)
+      : coerceList(payload?.recommendations).length > 0
+        ? coerceList(payload?.recommendations)
+        : coerceList(payload?.results).length > 0
+          ? coerceList(payload?.results)
+          : [];
+
+  const normalized = rawList
+    .map((item, index) => {
+      if (!item || typeof item !== 'object') return null;
+      const candidateId = String(
+        item.candidateId || item.candidateID || item.id || item.lawyerId || item.directoryId || ''
+      ).trim();
+      const candidate = candidatesById.get(candidateId);
+      if (!candidate) return null;
+
+      const fitHighlights = Array.isArray(item.fitHighlights)
+        ? item.fitHighlights
+        : Array.isArray(item.fit_highlights)
+          ? item.fit_highlights
+          : [];
+
+      const specialties = Array.isArray(item.specialties)
+        ? item.specialties
+        : Array.isArray(item.specialty)
+          ? item.specialty
+          : item.specialty
+            ? [item.specialty]
+            : [];
+
+      return buildLawyerCardFromCandidate(candidate, Number(item.rank) || index + 1, caseSummary, filters, {
+        specialties: specialties.map((value) => String(value).trim()).filter(Boolean).slice(0, 4),
+        fitHighlights: fitHighlights.map((value) => String(value).trim()).filter(Boolean).slice(0, 4),
+        rationale: String(item.rationale || item.reason || item.explanation || '').trim(),
+      });
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.rank - b.rank);
+
+  return ensureLawyerListCoverage(normalized, caseSummary, filters, resultCount);
+}
+
+async function rankDirectoryLawyersWithAI({ caseSummary, filters, candidates, resultCount }) {
+  if (!getGeminiKey()) {
+    return rankDirectoryLawyersHeuristically(candidates, caseSummary, filters, resultCount);
+  }
+
+  const candidateCatalog = candidates
+    .map((candidate) => [
+      `candidateId: ${candidate.id}`,
+      `name: ${candidate.name}`,
+      `designation: ${candidate.designation}`,
+      `court: ${candidate.court}`,
+      `city: ${candidate.city || 'Unknown'}`,
+      `address: ${candidate.address || 'Not listed'}`,
+      `registrationDate: ${candidate.registrationDate || 'Unknown'}`,
+      `remarks: ${candidate.remarks || 'None'}`,
+    ].join(' | '))
+    .join('\n');
+
+  const activeFilterLines = [
+    ['Matter type', filters.matterType],
+    ['Preferred forum', filters.courtLevel],
+    ['Preferred city', filters.city],
+    ['Case stage', filters.caseStage],
+    ['Budget band', filters.budgetBand],
+    ['Counsel style', filters.counselStyle],
+    ['Must-have expertise', filters.mustHaveExpertise],
+  ].filter(([, value]) => value);
+
+  const systemPrompt = `You are a senior Indian legal directory analyst. You must rank advocates from an official Supreme Court Advocate-on-Record candidate list.
+
+Rules:
+- Use ONLY candidates from the provided list
+- Return exactly ${resultCount} lawyers
+- Preserve each candidateId exactly as given
+- Prefer candidates whose official record best fits the case profile and filters
+- Do not invent names, courts, or credentials
+- If the case is high-stakes or appellate, weigh seniority and Supreme Court experience more heavily
+
+Respond ONLY with valid JSON in this exact shape:
+{
+  "lawyers": [
+    {
+      "rank": 1,
+      "candidateId": "sci-aor-123",
+      "specialties": ["Appellate Advocacy", "Constitutional Law"],
+      "fitHighlights": ["Senior advocate", "Delhi-based", "Supreme Court specialist"],
+      "rationale": "2-3 sentences explaining why this official directory candidate fits the case and filters."
+    }
+  ]
+}`;
+
+  const userPrompt = [
+    `Requested result count: ${resultCount}`,
+    `Case description:\n${caseSummary}`,
+    activeFilterLines.length > 0
+      ? `Structured filters:\n${activeFilterLines.map(([label, value]) => `- ${label}: ${value}`).join('\n')}`
+      : 'Structured filters:\n- None provided',
+    `Official candidate list:\n${candidateCatalog}`,
+  ].join('\n\n');
+
+  const data = await geminiChat({
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+    temperature: 0.4,
+    maxTokens: 2200,
+    timeoutMs: 45000,
+    responseFormat: { type: 'json_object' },
+  });
+
+  const content = extractContent(data);
+  const payload = extractStructuredPayload(data) || parseJsonFromText(content);
+  const candidatesById = new Map(candidates.map((candidate) => [candidate.id, candidate]));
+  let lawyers = normalizeDirectoryRankings(payload, candidatesById, caseSummary, filters, resultCount);
+
+  if (lawyers.length === 0 && content) {
+    try {
+      const repairedPayload = await repairDirectoryRankingPayloadFromText(content);
+      lawyers = normalizeDirectoryRankings(repairedPayload, candidatesById, caseSummary, filters, resultCount);
+    } catch {
+      // ignore repair failure
+    }
+  }
+
+  if (lawyers.length === 0) {
+    return rankDirectoryLawyersHeuristically(candidates, caseSummary, filters, resultCount);
+  }
+
+  return lawyers;
+}
+
+async function repairDirectoryRankingPayloadFromText(rawContent) {
   if (!rawContent || !rawContent.trim()) return null;
 
   const repairPrompt = `Convert the following content into valid JSON with this exact shape:
@@ -255,10 +443,9 @@ async function repairLawyerPayloadFromText(rawContent) {
   "lawyers": [
     {
       "rank": 1,
-      "name": "Full Name",
-      "designation": "Senior Advocate / Supreme Court of India",
+      "candidateId": "sci-aor-123",
       "specialties": ["Constitutional Law", "Criminal Law"],
-      "court": "Supreme Court of India",
+      "fitHighlights": ["Senior advocate", "Delhi-based"],
       "rationale": "2-3 sentence rationale"
     }
   ]
@@ -367,8 +554,6 @@ export async function generateAIArgument({
   responseMode = 'direct-reply',
 }) {
   const aiParty = caseData[aiSide];
-  const userSide = aiSide === 'petitioner' ? 'respondent' : 'petitioner';
-  const userParty = caseData[userSide];
 
   const maxTokens = DIFFICULTY_TOKENS[difficulty] ?? DIFFICULTY_TOKENS.medium;
 
@@ -510,63 +695,57 @@ Be fair but critical. A short generic argument should score 20-40. A detailed ar
  * @param {string} caseSummary - User's description of the case
  * @returns {Promise<Array>} - Array of 6 { rank, name, specialty, court, rationale }
  */
-export async function rankLawyersForCase(caseSummary) {
-  if (!getGeminiKey()) throw new Error('[Gemini] API key not configured.');
-
-  const systemPrompt = `You are a senior Indian legal directory expert. Given a case description, identify the 6 best Indian advocates or senior counsels (real or realistic archetypes) most suited to argue this case.
-
-Respond ONLY with a valid JSON object (no markdown, no prose) in this exact shape:
-{
-  "lawyers": [
-    {
-      "rank": 1,
-      "name": "Full Name",
-      "designation": "Senior Advocate / Supreme Court of India",
-      "specialties": ["Constitutional Law", "Criminal Law"],
-      "court": "Supreme Court of India",
-      "rationale": "2-3 sentence explanation of why this lawyer is the best fit for this case, referencing their expertise and past landmark cases."
+export async function rankLawyersForCase(input) {
+  const caseSummary = typeof input === 'string'
+    ? input
+    : (input?.caseSummary || '').toString().trim();
+  const resultCount = input && typeof input === 'object' && !Array.isArray(input)
+    ? Math.min(20, Math.max(1, Number(input.resultCount) || 6))
+    : 6;
+  const filters = input && typeof input === 'object' && !Array.isArray(input)
+    ? {
+      matterType: (input.filters?.matterType || '').toString().trim(),
+      courtLevel: (input.filters?.courtLevel || '').toString().trim(),
+      city: (input.filters?.city || '').toString().trim(),
+      caseStage: (input.filters?.caseStage || '').toString().trim(),
+      budgetBand: (input.filters?.budgetBand || '').toString().trim(),
+      counselStyle: (input.filters?.counselStyle || '').toString().trim(),
+      mustHaveExpertise: (input.filters?.mustHaveExpertise || '').toString().trim(),
     }
-  ]
-}
+    : {};
 
-Guidelines:
-- Rank 1 is the most recommended
-- Use well-known real Indian advocates as inspiration (e.g. Harish Salve, Mukul Rohatgi, Kapil Sibal, Indira Jaising, Menaka Guruswamy, Abhishek Manu Singhvi, etc.) or realistic archetypes
-- Specialties should be 2-4 specific legal domains relevant to the case
-- Rationale must directly reference how their expertise fits the described case
-- Courts: Supreme Court of India, High Courts, National Company Law Tribunal, etc.
-- Be specific, credible, and directly relevant to the case summary provided`;
-
-  const data = await geminiChat({
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: `Case description:\n${caseSummary}` },
-    ],
-    temperature: 0.6,
-    maxTokens: 1400,
-    timeoutMs: 45000,
-    responseFormat: { type: 'json_object' },
+  if (!caseSummary) {
+    throw new Error('Case description is required.');
+  }
+  const directoryCandidatesTarget = Math.max(resultCount * 3, 24);
+  const { lawyers: candidates, source } = await searchSupremeCourtLawyers({
+    filters,
+    limit: directoryCandidatesTarget,
   });
 
-  const content = extractContent(data);
-  const payload = extractStructuredPayload(data) || parseJsonFromText(content);
-  let lawyers = normalizeLawyerList(payload);
-
-  if (lawyers.length === 0 && content) {
-    try {
-      const repairedPayload = await repairLawyerPayloadFromText(content);
-      lawyers = normalizeLawyerList(repairedPayload);
-    } catch {
-      // ignore repair failure
-    }
+  if (candidates.length === 0) {
+    return {
+      lawyers: ensureLawyerListCoverage(buildFallbackLawyerList(caseSummary, filters), caseSummary, filters, resultCount),
+      source: {
+        label: 'Fallback advocate list',
+        type: 'fallback',
+        url: '',
+        asOf: '',
+      },
+    };
   }
 
-  if (lawyers.length === 0) {
-    console.warn('[Gemini] Falling back to curated lawyer list due to format mismatch.');
-    lawyers = buildFallbackLawyerList(caseSummary);
-  }
+  const rankedLawyers = await rankDirectoryLawyersWithAI({
+    caseSummary,
+    filters,
+    candidates,
+    resultCount,
+  });
 
-  return lawyers.slice(0, 6);
+  return {
+    lawyers: rankedLawyers,
+    source,
+  };
 }
 
 export default { generateAIArgument, scoreArgumentWithAI, rankLawyersForCase };
