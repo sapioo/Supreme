@@ -1,7 +1,7 @@
+import { useState } from 'react';
 import { Card } from '../ui/card';
-import { Button } from '../ui/button';
 import { PromptInputBox } from '../ui/ai-prompt-box';
-import { PanelLeftClose } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 export default function AIChatPane({
   providerStatus,
@@ -12,23 +12,12 @@ export default function AIChatPane({
   onSendChat,
   onApplyProposal,
   onDiscardProposal,
-  onHideSidebar,
 }) {
   return (
     <Card className="drafting-pane drafting-pane--ai">
       {/* Header */}
       <div className="drafting-pane__head">
-        <div className="drafting-pane__head-primary">
-          <Button
-            variant="outline"
-            size="icon"
-            className="drafting-pane__sidebar-toggle"
-            onClick={onHideSidebar}
-            aria-label="Hide AI sidebar"
-            title="Hide AI sidebar"
-          >
-            <PanelLeftClose className="drafting-pane__sidebar-toggle-icon" />
-          </Button>
+        <div className="drafting-pane__head-main">
           <h2>AI Drafting Chat</h2>
         </div>
         <span>{providerStatus}</span>
@@ -55,40 +44,13 @@ export default function AIChatPane({
             >
               <p className="drafting-chat-bubble__content">{message.content}</p>
 
-              {/* Proposal */}
+              {/* Proposal — collapsed by default */}
               {message.proposedSource && (
-                <div className="drafting-chat-proposal">
-                  <div className="drafting-chat-proposal__head">
-                    <strong>Proposed full-source rewrite</strong>
-                    <span>
-                      {message.proposalState === 'pending'
-                        ? 'Pending'
-                        : message.proposalState}
-                    </span>
-                  </div>
-                  <pre className="drafting-chat-proposal__source">
-                    {message.proposedSource}
-                  </pre>
-                  {message.proposalState === 'pending' && (
-                    <div className="drafting-chat-proposal__actions">
-                      <Button
-                        size="sm"
-                        className="drafting-chat-proposal__button"
-                        onClick={() => onApplyProposal(message.id)}
-                      >
-                        Apply to Source
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="drafting-chat-proposal__button"
-                        onClick={() => onDiscardProposal(message.id)}
-                      >
-                        Discard
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                <ProposalBlock
+                  message={message}
+                  onApply={onApplyProposal}
+                  onDiscard={onDiscardProposal}
+                />
               )}
             </div>
           </div>
@@ -116,5 +78,56 @@ export default function AIChatPane({
         />
       </div>
     </Card>
+  );
+}
+
+function ProposalBlock({ message, onApply, onDiscard }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const isPending = message.proposalState === 'pending';
+  const stateLabel = isPending ? 'pending' : message.proposalState;
+
+  return (
+    <div className="drafting-chat-proposal">
+      <div className="drafting-chat-proposal__bar">
+        <button
+          type="button"
+          className="drafting-chat-proposal__toggle"
+          onClick={() => setIsOpen((prev) => !prev)}
+        >
+          <ChevronRight
+            className={`drafting-chat-proposal__chevron ${isOpen ? 'drafting-chat-proposal__chevron--open' : ''}`}
+          />
+          <span className="drafting-chat-proposal__label">View changes</span>
+          <span className={`drafting-chat-proposal__badge drafting-chat-proposal__badge--${stateLabel}`}>
+            {stateLabel}
+          </span>
+        </button>
+
+        {isPending && (
+          <div className="drafting-chat-proposal__actions">
+            <button
+              type="button"
+              className="drafting-chat-proposal__btn drafting-chat-proposal__btn--apply"
+              onClick={() => onApply(message.id)}
+            >
+              Apply
+            </button>
+            <button
+              type="button"
+              className="drafting-chat-proposal__btn drafting-chat-proposal__btn--discard"
+              onClick={() => onDiscard(message.id)}
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+      </div>
+
+      {isOpen && (
+        <pre className="drafting-chat-proposal__source">
+          {message.proposedSource}
+        </pre>
+      )}
+    </div>
   );
 }

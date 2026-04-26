@@ -51,8 +51,8 @@ export const PromptInputBox = React.forwardRef(function PromptInputBox(
     if (!textarea) return;
 
     textarea.style.height = '0px';
-    const nextHeight = Math.min(textarea.scrollHeight, 180);
-    textarea.style.height = `${Math.max(nextHeight, 72)}px`;
+    const nextHeight = textarea.scrollHeight;
+    textarea.style.height = `${Math.max(nextHeight, 56)}px`;
   }, [value]);
 
   const hasContent = value.trim().length > 0;
