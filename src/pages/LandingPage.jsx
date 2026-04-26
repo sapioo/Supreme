@@ -4,7 +4,7 @@ import CaseGrid from '../components/landing/CaseGrid';
 import ArchiveSection from '../components/landing/ArchiveSection';
 import './LandingPage.css';
 
-export default function LandingPage({ onSelectCase, onCustomCase, onFirm }) {
+export default function LandingPage({ onSelectCase, onBackHome, onCustomCase, onFirm }) {
   const caseGridRef = useRef(null);
   const archiveRef = useRef(null);
   const [showArchive, setShowArchive] = useState(false);
@@ -23,10 +23,24 @@ export default function LandingPage({ onSelectCase, onCustomCase, onFirm }) {
   return (
     <div className="landing-page" id="landing-page">
       <HeroSection onExplore={handleExplore} onArchive={handleBrowseArchive} onCustomCase={onCustomCase} onFirm={onFirm} />
-
       <section className="landing-page__cases" ref={caseGridRef}>
+        <div className="landing-page__toolbar">
+          <button className="landing-page__toolbar-back" onClick={onBackHome}>
+            ← Home
+          </button>
+          <button className="landing-page__toolbar-btn" onClick={handleBrowseArchive}>
+            Open Session Archive
+          </button>
+        </div>
+
         <div className="landing-page__cases-head">
-          <h2 className="landing-page__cases-title">Historical Dossiers</h2>
+          <div>
+            <p className="landing-page__cases-eyebrow">Practice workspace</p>
+            <h2 className="landing-page__cases-title">Historical Dossiers</h2>
+          </div>
+          <p className="landing-page__cases-copy">
+            Select a case and move directly into side selection. Archive and custom case tools stay in this workspace.
+          </p>
         </div>
         <CaseGrid onSelectCase={onSelectCase} />
 

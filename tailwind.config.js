@@ -1,0 +1,73 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    './src/components/ui/**/*.jsx',
+    './src/components/drafting/**/*.jsx',
+    './src/pages/DraftingPage.jsx',
+  ],
+  corePlugins: {
+    preflight: false,
+  },
+  theme: {
+    extend: {
+      colors: {
+        background: 'var(--color-background)',
+        surface: 'var(--color-surface)',
+        'on-surface': 'var(--color-on-surface)',
+        secondary: 'var(--color-secondary)',
+        outline: 'var(--color-outline)',
+        'on-surface-variant': 'var(--color-on-surface-variant)',
+        'surface-container-low': 'var(--color-surface-container-low)',
+        'surface-container': 'var(--color-surface-container)',
+        'surface-container-high': 'var(--color-surface-container-high)',
+        error: 'var(--color-error)',
+        'on-secondary': 'var(--color-on-secondary)',
+        'on-secondary-container': 'var(--color-on-secondary-container)',
+        'bg-card': 'var(--bg-card)',
+
+        /* Legacy aliases */
+        'walnut-deepest': 'var(--walnut-deepest)',
+        'walnut-dark': 'var(--walnut-dark)',
+        'walnut-medium': 'var(--walnut-medium)',
+        'walnut-light': 'var(--walnut-light)',
+        'walnut-highlight': 'var(--walnut-highlight)',
+        'gold-parchment': 'var(--gold-parchment)',
+        'gold-light': 'var(--gold-light)',
+        'gold-dim': 'var(--gold-dim)',
+        'gold-glow': 'var(--gold-glow)',
+        ivory: 'var(--ivory)',
+        'ivory-dim': 'var(--ivory-dim)',
+        'ivory-muted': 'var(--ivory-muted)',
+      },
+      fontFamily: {
+        heading: 'var(--font-heading)',
+        body: 'var(--font-body)',
+        label: 'var(--font-label)',
+        mono: 'var(--font-mono)',
+      },
+      borderRadius: {
+        sm: 'var(--radius-sm)',
+        md: 'var(--radius-md)',
+        lg: 'var(--radius-lg)',
+        xl: 'var(--radius-xl)',
+        '2xl': 'var(--radius-2xl)',
+        pill: 'var(--radius-pill)',
+      },
+      spacing: {
+        1: 'var(--space-1)',
+        2: 'var(--space-2)',
+        3: 'var(--space-3)',
+        4: 'var(--space-4)',
+        5: 'var(--space-5)',
+        6: 'var(--space-6)',
+        8: 'var(--space-8)',
+        10: 'var(--space-10)',
+        12: 'var(--space-12)',
+        16: 'var(--space-16)',
+        20: 'var(--space-20)',
+        24: 'var(--space-24)',
+      },
+    },
+  },
+  plugins: [],
+}

@@ -17,6 +17,10 @@
   min-height: 100vh;
 }
 
+.app__page--drafting {
+  min-height: 100vh;
+}
+
 .app__page--custom-case {
   min-height: 100vh;
   padding: clamp(2rem, 6vw, 4rem) clamp(1rem, 6vw, 4rem);
