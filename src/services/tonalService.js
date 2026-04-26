@@ -8,10 +8,107 @@
 const GEMINI_BASE_URL = import.meta.env.DEV
     ? '/api/gemini/v1beta/openai'
     : 'https://generativelanguage.googleapis.com/v1beta/openai';
-const GEMINI_MODEL = 'gemini-1.5-flash';
+const GEMINI_MODEL = 'gemini-2.5-flash';
 
 function getGeminiKey() {
     return import.meta.env.VITE_GEMINI_API_KEY || '';
+}
+
+function extractMessageContent(data) {
+    const message = data?.choices?.[0]?.message;
+    if (!message) return '';
+
+    const content = message.content;
+    if (typeof content === 'string') return content.trim();
+
+    if (Array.isArray(content)) {
+        return content
+            .map((part) => {
+                if (typeof part === 'string') return part;
+                if (!part || typeof part !== 'object') return '';
+                return part.text || part.content || part.value || '';
+            })
+            .filter(Boolean)
+            .join(' ')
+            .trim();
+    }
+
+    if (content && typeof content === 'object') {
+        if (typeof content.text === 'string') return content.text.trim();
+        try {
+            return JSON.stringify(content);
+        } catch {
+            return '';
+        }
+    }
+
+    return '';
+}
+
+function parseJsonFromText(raw) {
+    if (!raw || typeof raw !== 'string') return null;
+    const clean = raw.replace(/```json|```/gi, '').trim();
+
+    try {
+        return JSON.parse(clean);
+    } catch {
+        // Continue to fallback extraction.
+    }
+
+    const objectMatch = clean.match(/\{[\s\S]*\}/);
+    if (!objectMatch) return null;
+
+    try {
+        return JSON.parse(objectMatch[0]);
+    } catch {
+        return null;
+    }
+}
+
+function normalizeTonePayload(payload) {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null;
+
+    const allowedDominants = [
+        'Assertive',
+        'Measured',
+        'Aggressive',
+        'Defensive',
+        'Persuasive',
+        'Conciliatory',
+        'Analytical',
+        'Emotional',
+    ];
+
+    const dominant = String(payload.dominant || payload.tone || 'Analytical').trim();
+    const safeDominant = allowedDominants.includes(dominant) ? dominant : 'Analytical';
+
+    const toInt = (value, fallback = 50) => {
+        const n = Number(value);
+        if (!Number.isFinite(n)) return fallback;
+        return Math.max(0, Math.min(100, Math.round(n)));
+    };
+
+    const rawTags = Array.isArray(payload.tags)
+        ? payload.tags
+        : Array.isArray(payload.keywords)
+            ? payload.keywords
+            : payload.tags
+                ? [payload.tags]
+                : [];
+
+    const tags = rawTags
+        .map((tag) => String(tag || '').trim())
+        .filter(Boolean)
+        .slice(0, 3);
+
+    return {
+        dominant: safeDominant,
+        confidence: toInt(payload.confidence, 55),
+        formality: toInt(payload.formality, 60),
+        emotionality: toInt(payload.emotionality, 35),
+        tags,
+        tip: String(payload.tip || payload.suggestion || '').trim() || 'Support each claim with one precise constitutional citation.',
+    };
 }
 
 // ── prompt ─────────────────────────────────────────────────────────────────
@@ -50,6 +147,7 @@ async function callGemini(text, side, round) {
         body: JSON.stringify({
             model: GEMINI_MODEL,
             messages: [{ role: 'user', content: buildPrompt(text, side, round) }],
+            response_format: { type: 'json_object' },
             max_tokens: 150,
             temperature: 0.3,
             stream: false,
@@ -59,11 +157,9 @@ async function callGemini(text, side, round) {
 
     if (!res.ok) return null;
     const data = await res.json();
-    const raw = data?.choices?.[0]?.message?.content ?? '';
-
-    // Strip any accidental markdown fences
-    const clean = raw.replace(/```json|```/g, '').trim();
-    return JSON.parse(clean);
+    const raw = extractMessageContent(data);
+    const parsed = parseJsonFromText(raw);
+    return normalizeTonePayload(parsed);
 }
 
 // ── Public API ──────────────────────────────────────────────────────────────
